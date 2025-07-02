@@ -183,5 +183,5 @@ combined <- bind_rows(combined, cbind(WS_6.30[2, ], Qualtrics_6.30[92, ]))
 ```{r}
 combined <- combined %>% select(where(~!all(is.na(.x))))
 # 74 obs with 154 var.
-```
+``` 
 

@@ -73,7 +73,7 @@ sum(lang_other$Count)
 # out of 69 total obs., only 18 households speak another language (outside of English) (after cleaning and removing English/No answers)
 ```
 
-CN - to graph next ? combine the common languages to see how many languages are spoken / start data mining the birth orders and see how that looks @ 11:40am
+CN - to graph next ? combine the common languages to see how many languages are spoken / start data mining the birth orders and see how that looks @ 11:40am 
 ```{r}
 
 ```
