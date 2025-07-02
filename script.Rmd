@@ -144,7 +144,7 @@ Below data mining additions as of 6.30.25 (done CN - 7/1 @ 11:15am)
 ```{r}
 # Setting up new data
 
-setwd("Survey/6:30:25")
+setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey/6:30:25")
 
 Qualtrics_6.30 <- read_excel("PBS - Qualtrics (6.30).xlsx")
 WS_6.30 <- read_excel("PBS CHS - WS_summary (6.30).xlsx")
