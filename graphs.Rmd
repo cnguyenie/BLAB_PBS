@@ -74,7 +74,31 @@ sum(lang_other$Count)
 ```
 
 CN - to graph next ? combine the common languages to see how many languages are spoken / start data mining the birth orders and see how that looks @ 11:40am 
-```{r}
+```{r, fig.width = 6, fig.height = 7}
+lang_other <- lang_other %>%
+  mutate(Language_Group = case_when(
+    grepl(",", `Other Language?`) ~ "Multilingual",  # overrides all
+    grepl("spanish", `Other Language?`, ignore.case = TRUE) ~ "Spanish",
+    `Other Language?` %in% c("cantonese", "mandarin chinese", "korean", "malyalam", "urdu") ~ "Asian",
+    `Other Language?` %in% c("arabic", "farsi", "hebrew") ~ "Middle Eastern",
+    `Other Language?` == "russian" ~ "Slavic",
+    TRUE ~ NA_character_
+  ))
+
+lang_other %>%
+  group_by(Language_Group) %>%
+  summarise(Count = sum(Count), .groups = "drop") %>%
+  ggplot(aes(x = Language_Group, y = Count)) +
+  geom_bar(stat = "identity", fill = "skyblue", width = 0.7) +
+  geom_text(aes(label = Count), vjust = -0.5, family = "Times") +
+  labs(
+    title = "Other Languages Spoken",
+    x = "Language Group",
+    y = "Count"
+  ) +
+  theme_minimal(base_size = 12, base_family = "Times") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
 
 ```
 
