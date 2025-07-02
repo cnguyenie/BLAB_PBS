@@ -1,0 +1,79 @@
+---
+title: "graphs"
+output: html_document
+date: "2025-07-02"
+---
+```{r}
+install.packages("tidyr")
+library(tidyr)
+install.packages("ggplot2")
+library(ggplot2)
+```
+
+Sibling Count: Yes/No?
+```{r}
+sib_yesno <- table(combined$`Are there any other children who live in your home?`)
+sib_yesno <- as.data.frame(sib_yesno)
+
+colnames(sib_yesno)[1] <- "Answer"
+colnames(sib_yesno)[2] <- "Count"
+```
+Sibling Count: Graph
+```{r, fig.height=8, fig.width=6}
+householdplot <- ggplot(sib_yesno, aes(x = Answer, y = Count)) + 
+  geom_bar(stat = "identity", fill = "plum") +
+  geom_text(aes(label = Count), vjust = -0.5, family = "Times")
+  labs(title = "How Many Households have Siblings?"
+  ) + 
+  theme_minimal(base_size = 15, base_family = "Times")
+
+householdplot
+```
+```{r}
+sibcount <- c(1, 1, 1, 2, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 7, 1, 1, 3, 2, 1, 1, 1, 2, 1, 1, 2, 1, 1, 3, 1, 1, 1, 1, 3, 1, 1, 3, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1)
+
+sibcount_df <- data.frame(SiblingCount = factor(sibcount))
+
+ggplot(sibcount_df, aes(x = SiblingCount)) +
+  geom_bar(fill = "lightblue") +
+  geom_text(stat = "count", aes(label = ..count..), vjust = -0.3,  
+    family = "Times") +
+  labs(
+    title = "Sibling Count in Households",
+    x = "Number of Siblings",
+    y = "Number of Households"
+  ) +
+  theme_minimal(base_size = 14, base_family = "Times")
+
+sibcount_df
+```
+
+Languages in Household
+```{r}
+lang_other <- table(combined$`Are there any other languages spoken in your home?`)
+lang_other <- as.data.frame(lang_other)
+
+colnames(lang_other)[1] <- "Other Language?"
+colnames(lang_other)[2] <- "Count"
+
+sum(lang_other$Count)
+
+# sum was to see how many answers were given
+```
+
+```{r}
+lang_other$`Other Language?` <- tolower(lang_other$`Other Language?`)
+lang_other <- aggregate(Count ~ `Other Language?`, data = lang_other, sum)
+
+lang_other <- (lang_other[-c(3,12:14), ])
+sum(lang_other$Count)
+
+# out of 69 total obs., only 18 households speak another language (outside of English) (after cleaning and removing English/No answers)
+```
+
+CN - to graph next ? combine the common languages to see how many languages are spoken / start data mining the birth orders and see how that looks @ 11:40am
+```{r}
+
+```
+
+
