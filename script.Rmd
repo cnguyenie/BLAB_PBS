@@ -1,0 +1,213 @@
+---
+title: "script"
+output: html_document
+date: "2025-07-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+###############
+Installing
+```{r}
+install.packages("readxl")
+install.packages("readr")
+install.packages("dplyr")
+
+library(readxl)
+library(readr)
+library(dplyr)
+```
+Reading Files
+```{r}
+setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey")
+# Read the Excel file
+WG_data <- read_excel("PBS CHS - WG_summary.xlsx")
+WS_data <- read_excel("PBS CHS - WS_summary.xlsx")
+Qualtrics_data <- read_excel("PBS CHS - Qualtrics.xlsx")
+```
+Cleaning
+```{r}
+WS_data <- WS_data %>% select(where(~!all(is.na(.x))))
+WG_data <- WG_data %>% select(where(~!all(is.na(.x))))
+WS_data <- WS_data[, -c(7:10)]
+WG_data <- WG_data[, -c(6:10)]
+Qualtrics_data <- Qualtrics_data[, -c(1:16)]
+Qualtrics_data <- Qualtrics_data[-c(1:12),]
+```
+Start combination data frame + combining
+```{r}
+# OG start of new data frame
+combined <- bind_rows(cbind(WG_data[63, ], Qualtrics_data[2, ]))
+```
+Duplicates across both datasets
+```{r}
+duplicates <- intersect(WG_data$subject_id, WS_data$subject_id)
+duplicates <- sort(duplicates)
+list(duplicates)
+```
+
+Combining WG + Qualtrics
+```{r}
+# 63 to 50 in WG data
+combined <- bind_rows(combined, cbind(WG_data[62, ], Qualtrics_data[3, ]))
+combined <- bind_rows(combined, cbind(WG_data[60, ], Qualtrics_data[5, ]))
+combined <- bind_rows(combined, cbind(WG_data[56, ], Qualtrics_data[13, ]))
+combined <- bind_rows(combined, cbind(WG_data[54, ], Qualtrics_data[17, ]))
+combined <- bind_rows(combined, cbind(WG_data[53, ], Qualtrics_data[18, ]))
+combined <- bind_rows(combined, cbind(WG_data[52, ], Qualtrics_data[19, ]))
+combined <- bind_rows(combined, cbind(WG_data[51, ], Qualtrics_data[21, ]))
+#49 to 40
+combined <- bind_rows(combined, cbind(WG_data[49, ], Qualtrics_data[16, ]))
+combined <- bind_rows(combined, cbind(WG_data[47, ], Qualtrics_data[34, ]))
+combined <- bind_rows(combined, cbind(WG_data[45, ], Qualtrics_data[36, ]))
+combined <- bind_rows(combined, cbind(WG_data[42, ], Qualtrics_data[33, ]))
+combined <- bind_rows(combined, cbind(WG_data[40, ], Qualtrics_data[28, ]))
+# 39 to 30
+combined <- bind_rows(combined, cbind(WG_data[39, ], Qualtrics_data[23, ]))
+combined <- bind_rows(combined, cbind(WG_data[34, ], Qualtrics_data[41, ]))
+combined <- bind_rows(combined, cbind(WG_data[32, ], Qualtrics_data[43, ]))
+combined <- bind_rows(combined, cbind(WG_data[31, ], Qualtrics_data[44, ]))
+# note that 30 (subject ID 45) didnt have a match with the qualtrics form
+# 29 to 20
+combined <- bind_rows(combined, cbind(WG_data[28, ], Qualtrics_data[47, ]))
+combined <- bind_rows(combined, cbind(WG_data[27, ], Qualtrics_data[30, ]))
+combined <- bind_rows(combined, cbind(WG_data[26, ], Qualtrics_data[48, ]))
+combined <- bind_rows(combined, cbind(WG_data[25, ], Qualtrics_data[50, ]))
+combined <- bind_rows(combined, cbind(WG_data[24, ], Qualtrics_data[51, ]))
+combined <- bind_rows(combined, cbind(WG_data[22, ], Qualtrics_data[26, ]))
+combined <- bind_rows(combined, cbind(WG_data[21, ], Qualtrics_data[53, ]))
+# 19 to 10
+combined <- bind_rows(combined, cbind(WG_data[19, ], Qualtrics_data[56, ]))
+combined <- bind_rows(combined, cbind(WG_data[17, ], Qualtrics_data[60, ]))
+combined <- bind_rows(combined, cbind(WG_data[16, ], Qualtrics_data[61, ]))
+combined <- bind_rows(combined, cbind(WG_data[15, ], Qualtrics_data[54, ]))
+combined <- bind_rows(combined, cbind(WG_data[14, ], Qualtrics_data[64, ]))
+combined <- bind_rows(combined, cbind(WG_data[13, ], Qualtrics_data[65, ]))
+combined <- bind_rows(combined, cbind(WG_data[12, ], Qualtrics_data[68, ]))
+combined <- bind_rows(combined, cbind(WG_data[11, ], Qualtrics_data[69, ]))
+# 10 (ID 56) has no match
+# 9 to 0
+combined <- bind_rows(combined, cbind(WG_data[9, ], Qualtrics_data[78, ]))
+combined <- bind_rows(combined, cbind(WG_data[8, ], Qualtrics_data[79, ]))
+combined <- bind_rows(combined, cbind(WG_data[7, ], Qualtrics_data[80, ]))
+combined <- bind_rows(combined, cbind(WG_data[6, ], Qualtrics_data[82, ]))
+combined <- bind_rows(combined, cbind(WG_data[5, ], Qualtrics_data[84, ]))
+# 4 (ID 87) has no match
+combined <- bind_rows(combined, cbind(WG_data[3, ], Qualtrics_data[83, ]))
+combined <- bind_rows(combined, cbind(WG_data[2, ], Qualtrics_data[89, ]))
+# 1 (ID 94) has no match
+```
+Combining WS + Qualtrics
+```{r}
+# 37 (ID 64) has no match
+combined <- bind_rows(combined, cbind(WS_data[36, ], Qualtrics_data[67, ]))
+combined <- bind_rows(combined, cbind(WS_data[35, ], Qualtrics_data[1, ]))
+combined <- bind_rows(combined, cbind(WS_data[34, ], Qualtrics_data[9, ]))
+combined <- bind_rows(combined, cbind(WS_data[33, ], Qualtrics_data[6, ]))
+combined <- bind_rows(combined, cbind(WS_data[32, ], Qualtrics_data[7, ]))
+combined <- bind_rows(combined, cbind(WS_data[31, ], Qualtrics_data[8, ]))
+combined <- bind_rows(combined, cbind(WS_data[30, ], Qualtrics_data[10, ]))
+combined <- bind_rows(combined, cbind(WS_data[29, ], Qualtrics_data[11, ]))
+combined <- bind_rows(combined, cbind(WS_data[28, ], Qualtrics_data[15, ]))
+combined <- bind_rows(combined, cbind(WS_data[27, ], Qualtrics_data[16, ]))
+combined <- bind_rows(combined, cbind(WS_data[26, ], Qualtrics_data[20, ]))
+combined <- bind_rows(combined, cbind(WS_data[25, ], Qualtrics_data[22, ]))
+combined <- bind_rows(combined, cbind(WS_data[24, ], Qualtrics_data[12, ]))
+combined <- bind_rows(combined, cbind(WS_data[23, ], Qualtrics_data[31, ]))
+combined <- bind_rows(combined, cbind(WS_data[22, ], Qualtrics_data[38, ]))
+combined <- bind_rows(combined, cbind(WS_data[21, ], Qualtrics_data[40, ]))
+combined <- bind_rows(combined, cbind(WS_data[20, ], Qualtrics_data[42, ]))
+# 19 (ID 46) has no match
+combined <- bind_rows(combined, cbind(WS_data[18, ], Qualtrics_data[29, ]))
+combined <- bind_rows(combined, cbind(WS_data[17, ], Qualtrics_data[52, ]))
+combined <- bind_rows(combined, cbind(WS_data[16, ], Qualtrics_data[54, ]))
+combined <- bind_rows(combined, cbind(WS_data[15, ], Qualtrics_data[59, ]))
+combined <- bind_rows(combined, cbind(WS_data[14, ], Qualtrics_data[35, ]))
+combined <- bind_rows(combined, cbind(WS_data[13, ], Qualtrics_data[70, ]))
+combined <- bind_rows(combined, cbind(WS_data[12, ], Qualtrics_data[27, ]))
+combined <- bind_rows(combined, cbind(WS_data[11, ], Qualtrics_data[32, ]))
+# 10 (ID 25) has no match
+# 9 (ID 7) is a duplicate subject ID within the WS dataset
+combined <- bind_rows(combined, cbind(WS_data[8, ], Qualtrics_data[75, ]))
+# 7 (ID 76) has no match
+# 6 (ID 77) has no match
+combined <- bind_rows(combined, cbind(WS_data[5, ], Qualtrics_data[81, ]))
+combined <- bind_rows(combined, cbind(WS_data[4, ], Qualtrics_data[86, ]))
+combined <- bind_rows(combined, cbind(WS_data[3, ], Qualtrics_data[88, ]))
+combined <- bind_rows(combined, cbind(WS_data[2, ], Qualtrics_data[87, ]))
+# 1 (ID 95) has no match
+```
+More Cleaning
+```{r}
+combined <- combined %>% select(where(~!all(is.na(.x))))
+# should end with 69 obs. with 153 var.
+```
+
+Above data mining as of 6.24.25
+Below data mining additions as of 6.30.25 (done CN - 7/1 @ 11:15am)
+```{r}
+# Setting up new data
+
+setwd("Survey/6:30:25")
+
+Qualtrics_6.30 <- read_excel("PBS - Qualtrics (6.30).xlsx")
+WS_6.30 <- read_excel("PBS CHS - WS_summary (6.30).xlsx")
+WG_6.30 <- read_excel("PBS CHS - WG_summary (6.30).xlsx")
+
+colnames(Qualtrics_6.30) <- as.character(Qualtrics_6.30[1, ])
+Qualtrics_6.30 <- Qualtrics_6.30[-1, ]
+
+# Cleaning
+WS_6.30 <- WS_6.30 %>% select(where(~!all(is.na(.x))))
+WG_6.30 <- WG_6.30 %>% select(where(~!all(is.na(.x))))
+WS_6.30 <- WS_6.30[, -c(5:10)]
+WG_6.30 <- WG_6.30[, -c(5:10)]
+Qualtrics_6.30 <- Qualtrics_6.30[, -c(1:16)]
+Qualtrics_6.30 <- Qualtrics_6.30[-c(1:12),]
+WG_6.30 <- WG_6.30[, -18]
+
+Qualtrics_data[] <- lapply(Qualtrics_data, as.character)
+Qualtrics_6.30[] <- lapply(Qualtrics_6.30, as.character)
+combined[] <- lapply(combined, as.character)
+WG_6.30[] <- lapply(WG_6.30, as.character)
+WS_6.30[] <- lapply(WS_6.30, as.character)
+WS_data[] <- lapply(WS_data, as.character)
+WG_data[] <- lapply(WG_data, as.character)
+
+```
+Combining new entries into existing combined dataset
+```{r}
+combined <- bind_rows(combined, cbind(WG_6.30[1, ], Qualtrics_6.30[98, ]))
+combined <- bind_rows(combined, cbind(WS_6.30[1, ], Qualtrics_6.30[96, ]))
+combined <- bind_rows(combined, cbind(WG_6.30[2, ], Qualtrics_6.30[94, ]))
+combined <- bind_rows(combined, cbind(WG_6.30[3, ], Qualtrics_6.30[93, ]))
+combined <- bind_rows(combined, cbind(WS_6.30[2, ], Qualtrics_6.30[92, ]))
+
+```
+```{r}
+combined <- combined %>% select(where(~!all(is.na(.x))))
+# 74 obs with 154 var.
+```
+
