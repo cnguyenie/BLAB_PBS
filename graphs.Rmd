@@ -8,7 +8,7 @@ install.packages("tidyr")
 library(tidyr)
 install.packages("ggplot2")
 library(ggplot2)
-```
+``` 
 
 Sibling Count: Yes/No?
 ```{r}

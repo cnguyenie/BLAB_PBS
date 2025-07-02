@@ -3,7 +3,7 @@ title: "script"
 output: html_document
 date: "2025-07-02"
 ---
-Installing
+Installing 
 ```{r}
 install.packages("readxl")
 install.packages("readr")
