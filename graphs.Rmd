@@ -99,7 +99,6 @@ lang_other %>%
   theme_minimal(base_size = 12, base_family = "Times") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
-
 ```
 
 
