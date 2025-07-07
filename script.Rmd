@@ -140,44 +140,40 @@ combined <- combined %>% select(where(~!all(is.na(.x))))
 ```
 
 Above data mining as of 6.24.25
-Below data mining additions as of 6.30.25 (done CN - 7/1 @ 11:15am)
+Below data mining additions as of 7/7/25 (not done yet)
 ```{r}
 # Setting up new data
 
-setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey/6:30:25")
+setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey/7:7:25")
 
-Qualtrics_6.30 <- read_excel("PBS - Qualtrics (6.30).xlsx")
-WS_6.30 <- read_excel("PBS CHS - WS_summary (6.30).xlsx")
-WG_6.30 <- read_excel("PBS CHS - WG_summary (6.30).xlsx")
+Qualtrics_7.7 <- read_excel("PBS CHS - Qualtrics_7.7.xlsx")
+WS_7.7 <- read_excel("PBS CHS - WS_7.7.xlsx")
+WG_7.7 <- read_excel("PBS CHS - WG_7.7.xlsx")
 
-colnames(Qualtrics_6.30) <- as.character(Qualtrics_6.30[1, ])
-Qualtrics_6.30 <- Qualtrics_6.30[-1, ]
+colnames(Qualtrics_7.7) <- as.character(Qualtrics_7.7[1, ])
+Qualtrics_7.7 <- Qualtrics_7.7[-1, ]
 
 # Cleaning
-WS_6.30 <- WS_6.30 %>% select(where(~!all(is.na(.x))))
-WG_6.30 <- WG_6.30 %>% select(where(~!all(is.na(.x))))
-WS_6.30 <- WS_6.30[, -c(5:10)]
-WG_6.30 <- WG_6.30[, -c(5:10)]
-Qualtrics_6.30 <- Qualtrics_6.30[, -c(1:16)]
-Qualtrics_6.30 <- Qualtrics_6.30[-c(1:12),]
-WG_6.30 <- WG_6.30[, -18]
+WS_7.7 <- WS_7.7[, -c(5:10)]
+WG_7.7 <- WG_7.7[, -c(5:10)]
+Qualtrics_7.7 <- Qualtrics_7.7[, -c(1:16)]
+Qualtrics_7.7 <- Qualtrics_7.7[-c(1:12),]
+WG_7.7 <- WG_7.7[, -18]
 
-Qualtrics_data[] <- lapply(Qualtrics_data, as.character)
-Qualtrics_6.30[] <- lapply(Qualtrics_6.30, as.character)
+
+Qualtrics_7.7 <- Qualtrics_7.7 %>% select(where(~!all(is.na(.x))))
+WS_7.7 <- WS_7.7 %>% select(where(~!all(is.na(.x))))
+WG_7.7 <- WG_7.7 %>% select(where(~!all(is.na(.x))))
+
+
+Qualtrics_7.7[] <- lapply(Qualtrics_7.7, as.character)
 combined[] <- lapply(combined, as.character)
-WG_6.30[] <- lapply(WG_6.30, as.character)
-WS_6.30[] <- lapply(WS_6.30, as.character)
-WS_data[] <- lapply(WS_data, as.character)
-WG_data[] <- lapply(WG_data, as.character)
-
+WG_7.7[] <- lapply(WG_7.7, as.character)
+WS_7.7[] <- lapply(WS_7.7, as.character)
 ```
 Combining new entries into existing combined dataset
 ```{r}
-combined <- bind_rows(combined, cbind(WG_6.30[1, ], Qualtrics_6.30[98, ]))
-combined <- bind_rows(combined, cbind(WS_6.30[1, ], Qualtrics_6.30[96, ]))
-combined <- bind_rows(combined, cbind(WG_6.30[2, ], Qualtrics_6.30[94, ]))
-combined <- bind_rows(combined, cbind(WG_6.30[3, ], Qualtrics_6.30[93, ]))
-combined <- bind_rows(combined, cbind(WS_6.30[2, ], Qualtrics_6.30[92, ]))
+
 
 ```
 ```{r}
