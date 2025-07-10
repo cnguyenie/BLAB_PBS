@@ -3,27 +3,41 @@ title: "graphs"
 output: html_document
 date: "2025-07-02"
 ---
-```{r}
-#install.packages("tidyr")
-library(tidyr)
-#install.packages("ggplot2")
-library(ggplot2)
-#install.packages("stringr")
-library(stringr)
+```{r install}
 
-combined <- read.csv("combined.csv")
+#install.packages("readxl")
+#install.packages("readr")
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("ggplot2")
+#install.packages("stringr")
+#install.packages("dplyr")
+
+library(readxl)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(stringr)
+library(dplyr)
+
+combined <- readRDS("combined.rds")
 ```   
 
-Sibling Count: Yes/No?
-```{r}
-sib_yesno <- table(combined$`Are there any other children who live in your home?`)
-sib_yesno <- as.data.frame(sib_yesno)
+```{r sib count}
+sib_yesno <- table(
+  factor(
+    combined$`Are there any other children who live in your home?`,
+    levels = c("Yes", "No")
+  )
+)
 
-colnames(sib_yesno)[1] <- "Answer"
-colnames(sib_yesno)[2] <- "Count"
+sib_yesno <- as.data.frame(sib_yesno)
+colnames(sib_yesno) <- c("Answer", "Count")
+sib_yesno
 ```
-Sibling Count: Graph
-```{r, fig.width = 6, fig.height = 7}
+
+```{r sibling count graph, fig.width = 6, fig.height = 7}
 householdplot <- ggplot(sib_yesno, aes(x = Answer, y = Count)) + 
   geom_bar(stat = "identity", fill = "plum") +
   geom_text(aes(label = Count), vjust = -0.5, family = "Times") +
@@ -34,7 +48,7 @@ householdplot <- ggplot(sib_yesno, aes(x = Answer, y = Count)) +
 
 householdplot
 ```
-```{r}
+```{r sibling identities graph}
 sib_df <- combined %>%
   select(
     parent_ID =  subject_id,
@@ -45,6 +59,7 @@ sib_df <- combined %>%
 sib_df <- sib_df %>%
   filter(has_siblings == "Yes", !is.na(info))
 ```
+
 ```{r, fig.width = 10, fig.height = 6}
 setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey")
 sibship_factors <- read_xlsx("Sibship_Factors.xlsx")
@@ -64,7 +79,7 @@ ggplot(sibship_factors, aes(x = Sib_Identity))+
       theme(plot.title = element_text(hjust = 0.5, size = 18, face = "bold")) 
 ```
 
-```{r, fig.width = 10, fig.height = 14}
+```{r sibling count in households, fig.width = 10, fig.height = 14}
 household_counts <- sibship_factors %>%
   filter(Sib_Birthdate != "n/a") %>%   # only valid rows
   group_by(Subject_ID) %>%
@@ -85,8 +100,7 @@ ggplot(sib_distribution, aes(x = as.factor(num_siblings), y = n)) +
       theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
 ```
 
-Languages in Household
-```{r}
+```{r languages in household}
 lang_other <- table(combined$`Are there any other languages spoken in your home?`)
 lang_other <- as.data.frame(lang_other)
 
@@ -98,18 +112,17 @@ sum(lang_other$Count)
 # sum was to see how many answers were given
 ```
 
-```{r}
+```{r cleaning for total lang count}
 lang_other$`Other Language?` <- tolower(lang_other$`Other Language?`)
 lang_other <- aggregate(Count ~ `Other Language?`, data = lang_other, sum)
 
 lang_other <- (lang_other[-c(3,12:14), ])
 sum(lang_other$Count)
 
-# out of 65 total obs., only 18 households speak another language (outside of English) (after cleaning and removing English/No answers)
+# out of 66 total obs., 27 households speak another language (outside of English) (after cleaning and removing English/No answers)
 ```
 
-CN - to graph next ? combine the common languages to see how many languages are spoken / start data mining the birth orders and see how that looks @ 11:40am 
-```{r, fig.width = 6, fig.height = 7}
+```{r graph of other lang spoken, fig.width = 6, fig.height = 7}
 lang_other <- lang_other %>%
   mutate(Language_Group = case_when(
     grepl(",", `Other Language?`) ~ "Multilingual",  # overrides all
@@ -133,6 +146,74 @@ lang_other %>%
   ) +
   theme_minimal(base_size = 12, base_family = "Times") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
+```
+```{r parent score of overall data}
+combined$Q64_1 <- as.numeric(combined$Q64_1)
+combined$Q38_1 <- as.numeric(combined$Q38_1)
+combined$Q39_1 <- as.numeric(combined$Q39_1)
+combined$Q54_1 <- as.numeric(combined$Q54_1)
+combined$Q65_1 <- as.numeric(combined$Q65_1)
+
+combined$parent_score <- rowSums(combined[, c("Q64_1", "Q54_1", "Q65_1", "Q38_1", "Q39_1")], na.rm = TRUE)
+big_text_theme <- theme_minimal(base_size = 16) +
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16),
+    legend.text = element_text(size = 14)
+  )
+
+combined <- combined %>%
+  filter(parent_score > 0)
+
+ggplot(combined, aes(x = parent_score)) +
+  geom_histogram(binwidth = 5, fill = "#0F6B99", color = "white", alpha = 0.8) +
+  labs(
+    title = "",
+    x = "Parent Score",
+    y = "Frequency"
+  ) +
+  theme_minimal(base_size = 12, base_family = "Times") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
+```
+```{r child score of overall data}
+combined$Q55_1 <- as.numeric(combined$Q55_1)
+combined$Q56_1 <- as.numeric(combined$Q56_1)
+combined$Q57_1 <- as.numeric(combined$Q57_1)
+combined$Q43_1 <- as.numeric(combined$Q43_1)
+combined$Q44_1 <- as.numeric(combined$Q44_1)
+
+combined$child_score <- rowSums(combined[, c("Q55_1", "Q56_1", "Q57_1", "Q43_1", "Q44_1")], na.rm = TRUE)
+
+combined <- combined %>%
+  filter(parent_score > 0)
+
+ggplot(combined, aes(x = child_score)) +
+  geom_histogram(binwidth = 5, fill = "#0F6B99", color = "white", alpha = 0.8) +
+  labs(
+    title = "",
+    x = "Child Score",
+    y = "Frequency"
+  )  +
+  theme_minimal(base_size = 12, base_family = "Times") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
+```
+```{r parent score mean w/ & w/o sibs}
+mean_with_siblings <- mean(combined$parent_score[
+  combined$`Are there any other children who live in your home?` == "Yes"
+], na.rm = TRUE)
+
+mean_without_siblings <- mean(combined$parent_score[
+  combined$`Are there any other children who live in your home?` == "No"
+], na.rm = TRUE)
+
+mean_with_siblings
+mean_without_siblings
+```
+```{r comparing older/younger target child}
+range(combined$parent_score, na.rm = TRUE)
+mean(c(14, 33))
+
 ```
 
 

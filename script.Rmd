@@ -3,8 +3,7 @@ title: "script"
 output: html_document
 date: "2025-07-02"
 ---
-Installing   
-```{r}
+```{r installation}
 #install.packages("readxl")
 #install.packages("readr")
 #install.packages("dplyr")
@@ -13,16 +12,14 @@ library(readxl)
 library(readr)
 library(dplyr)
 ```
-Reading Files
-```{r}
+```{r reading files in}
 setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey")
 # Read the Excel file
 WG_6.24 <- read_excel("PBS CHS - WG_summary.xlsx")
 WS_6.24 <- read_excel("PBS CHS - WS_summary.xlsx")
 Qualtrics_6.24 <- read_excel("PBS CHS - Qualtrics.xlsx")
 ```
-Cleaning
-```{r}
+```{r initial cleaning}
 Qualtrics_6.24 <- Qualtrics_6.24 %>% 
   filter(Progress == "100")
 
@@ -51,9 +48,7 @@ duplicates <- intersect(WG_6.24$subject_id, WS_6.24$subject_id)
 duplicates <- sort(duplicates)
 list(duplicates)
 ```
-
-Combining WG + Qualtrics
-```{r}
+```{r combining WG + qualtrics}
 # 63 to 50 in WG data
 combined <- bind_rows(combined, cbind(WG_6.24[62, ], Qualtrics_6.24[3, ]))
 combined <- bind_rows(combined, cbind(WG_6.24[60, ], Qualtrics_6.24[5, ]))
@@ -103,8 +98,7 @@ combined <- bind_rows(combined, cbind(WG_6.24[3, ], Qualtrics_6.24[83, ]))
 combined <- bind_rows(combined, cbind(WG_6.24[2, ], Qualtrics_6.24[89, ]))
 # 1 (ID 94) has no match
 ```
-Combining WS + Qualtrics
-```{r}
+```{r combining WS + qualtrics}
 # 37 (ID 64) has no match
 combined <- bind_rows(combined, cbind(WS_6.24[36, ], Qualtrics_6.24[67, ]))
 combined <- bind_rows(combined, cbind(WS_6.24[35, ], Qualtrics_6.24[1, ]))
@@ -143,16 +137,13 @@ combined <- bind_rows(combined, cbind(WS_6.24[3, ], Qualtrics_6.24[88, ]))
 combined <- bind_rows(combined, cbind(WS_6.24[2, ], Qualtrics_6.24[87, ]))
 # 1 (ID 95) has no match
 ```
-More Cleaning
-```{r}
+
+```{r more cleaning}
 combined <- combined %>% select(where(~!all(is.na(.x))))
 # should end with 69 obs. with 153 var.
 ```
 
-Above data mining as of 6.24.25
-Below data mining additions as of 7/9/25 (not done yet)
-```{r}
-# Setting up new data
+```{r new additions as of 7/7}
 
 setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey/7:9:25")
 
@@ -200,8 +191,7 @@ combined[] <- lapply(combined, as.character)
 WG_7.9[] <- lapply(WG_7.9, as.character)
 WS_7.9[] <- lapply(WS_7.9, as.character)
 ```
-Combining new entries into existing combined dataset (work in progress)
-```{r}
+```{r combining new entries into existing combined}
 # 93 has no match
 # 94 has no match
 # 95 has no match
@@ -218,11 +208,9 @@ combined <- bind_rows(combined, cbind(WG_7.9[4, ], Qualtrics_7.9[100, ]))
 combined <- bind_rows(combined, cbind(WG_7.9[3, ], Qualtrics_7.9[101, ]))
 combined <- bind_rows(combined, cbind(WG_7.9[2, ], Qualtrics_7.9[103, ]))
 ```
-```{r}
+```{r cleaning}
 combined <- combined %>% select(where(~!all(is.na(.x))))
 # 78 obs. of 157 var.
+saveRDS(combined, "combined.rds")
 ``` 
-```{r}
-write.csv(combined, "combined.csv", row.names = FALSE)
-```
 
