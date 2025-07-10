@@ -222,4 +222,7 @@ combined <- bind_rows(combined, cbind(WG_7.9[2, ], Qualtrics_7.9[103, ]))
 combined <- combined %>% select(where(~!all(is.na(.x))))
 # 78 obs. of 157 var.
 ``` 
+```{r}
+saveRDS(combined, "combined.rds")
+```
 
