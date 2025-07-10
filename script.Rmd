@@ -223,6 +223,6 @@ combined <- combined %>% select(where(~!all(is.na(.x))))
 # 78 obs. of 157 var.
 ``` 
 ```{r}
-saveRDS(combined, "combined.rds")
+write.csv(combined, "combined.csv", row.names = FALSE)
 ```
 
