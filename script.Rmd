@@ -5,9 +5,9 @@ date: "2025-07-02"
 ---
 Installing   
 ```{r}
-install.packages("readxl")
-install.packages("readr")
-install.packages("dplyr")
+#install.packages("readxl")
+#install.packages("readr")
+#install.packages("dplyr")
 
 library(readxl)
 library(readr)
