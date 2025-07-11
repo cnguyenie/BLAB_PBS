@@ -1,9 +1,13 @@
 ---
 title: "graphs"
-output: html_document
+output: 
+  html_document: 
+    highlight: monochrome
+    theme: journal
 date: "2025-07-02"
 ---
-```{r install}
+
+```{r install, echo=FALSE, message=FALSE,warning=FALSE}
 
 #install.packages("readxl")
 #install.packages("readr")
@@ -22,9 +26,9 @@ library(stringr)
 library(dplyr)
 
 combined <- readRDS("combined.rds")
-```   
+```
 
-```{r sib count}
+```{r sib count, echo=FALSE, message=FALSE,warning=FALSE}
 sib_yesno <- table(
   factor(
     combined$`Are there any other children who live in your home?`,
@@ -34,21 +38,25 @@ sib_yesno <- table(
 
 sib_yesno <- as.data.frame(sib_yesno)
 colnames(sib_yesno) <- c("Answer", "Count")
-sib_yesno
 ```
 
-```{r sibling count graph, fig.width = 6, fig.height = 7}
+### Household and Sibling Data
+
+Refers to sibship factors such as sibling identity, ages of children, number of children in a household, etc.
+
+```{r sibling count graph, fig.width = 5, fig.height = 5, echo=FALSE, message=FALSE,warning=FALSE}
 householdplot <- ggplot(sib_yesno, aes(x = Answer, y = Count)) + 
   geom_bar(stat = "identity", fill = "plum") +
   geom_text(aes(label = Count), vjust = -0.5, family = "Times") +
   labs(title = "How Many Households have Siblings?"
   ) + 
   theme_minimal(base_size = 14, base_family = "Times") +
-    theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold")) 
+    theme(plot.title = element_text(hjust = 0.5, size = 8, face = "bold")) 
 
 householdplot
 ```
-```{r sibling identities graph}
+
+```{r sibling identities code, echo=FALSE, message=FALSE,warning=FALSE}
 sib_df <- combined %>%
   select(
     parent_ID =  subject_id,
@@ -60,7 +68,7 @@ sib_df <- sib_df %>%
   filter(has_siblings == "Yes", !is.na(info))
 ```
 
-```{r, fig.width = 10, fig.height = 6}
+```{r graph of sibling identity, fig.width = 7, fig.height = 6, echo=FALSE, message=FALSE,warning=FALSE}
 setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey")
 sibship_factors <- read_xlsx("Sibship_Factors.xlsx")
 
@@ -75,11 +83,13 @@ ggplot(sibship_factors, aes(x = Sib_Identity))+
     x = "Sibling Identity",
     y = "Count"
   ) +
-  theme_minimal(base_size = 18, base_family = "Times") + 
-      theme(plot.title = element_text(hjust = 0.5, size = 18, face = "bold")) 
+  theme_minimal(base_size = 12, base_family = "Times") + 
+      theme(plot.title = element_text(hjust = 0.5, size = 12, face = "bold")) 
 ```
 
-```{r sibling count in households, fig.width = 10, fig.height = 14}
+`Sibling Identity` refers to the child's relation to the target child. 
+
+```{r sibling count in households, fig.width = 5, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
 household_counts <- sibship_factors %>%
   filter(Sib_Birthdate != "n/a") %>%   # only valid rows
   group_by(Subject_ID) %>%
@@ -96,40 +106,39 @@ ggplot(sib_distribution, aes(x = as.factor(num_siblings), y = n)) +
     x = "Number of Siblings",
     y = "Number of Households"
   ) +
-  theme_minimal(base_size = 20, base_family = "Times") + 
-      theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+  theme_minimal(base_size = 15, base_family = "Times") + 
+      theme(plot.title = element_text(hjust = 0.5, size = 12, face = "bold")) 
 ```
 
-```{r languages in household}
+`Sibling count` refers to how many siblings the target child has. In this context, `1` refers to a household of two children.
+
+```{r languages in household + cleaning, echo=FALSE, message=FALSE,warning=FALSE}
 lang_other <- table(combined$`Are there any other languages spoken in your home?`)
 lang_other <- as.data.frame(lang_other)
 
 colnames(lang_other)[1] <- "Other Language?"
 colnames(lang_other)[2] <- "Count"
 
-sum(lang_other$Count)
-
-# sum was to see how many answers were given
-```
-
-```{r cleaning for total lang count}
 lang_other$`Other Language?` <- tolower(lang_other$`Other Language?`)
 lang_other <- aggregate(Count ~ `Other Language?`, data = lang_other, sum)
 
-lang_other <- (lang_other[-c(3,12:14), ])
-sum(lang_other$Count)
-
-# out of 66 total obs., 27 households speak another language (outside of English) (after cleaning and removing English/No answers)
+lang_other <- (lang_other[-c(5,14,15), ])
 ```
 
-```{r graph of other lang spoken, fig.width = 6, fig.height = 7}
+### Languages within Households
+
+<br> Out of 66 fully completed observations, 27 households speak another language, that is not English. This is after cleaning and removing any English answers or no answers. `Multilingual` refers to households that speak more than one language group.
+
+```{r graph of other lang spoken, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
 lang_other <- lang_other %>%
   mutate(Language_Group = case_when(
     grepl(",", `Other Language?`) ~ "Multilingual",  # overrides all
     grepl("spanish", `Other Language?`, ignore.case = TRUE) ~ "Spanish",
-    `Other Language?` %in% c("cantonese", "mandarin chinese", "korean", "malyalam", "urdu") ~ "Asian",
+    `Other Language?` %in% c("cantonese", "mandarin chinese", "korean", "malyalam", "urdu", "mandarin") ~ "Asian",
     `Other Language?` %in% c("arabic", "farsi", "hebrew") ~ "Middle Eastern",
     `Other Language?` == "russian" ~ "Slavic",
+    `Other Language?` == "albanian" ~ "Indo-European",
+    `Other Language?` == "asl" ~ "Sign Language",
     TRUE ~ NA_character_
   ))
 
@@ -138,16 +147,22 @@ lang_other %>%
   summarise(Count = sum(Count), .groups = "drop") %>%
   ggplot(aes(x = Language_Group, y = Count)) +
   geom_bar(stat = "identity", fill = "plum", width = 0.7) +
-  geom_text(aes(label = Count), vjust = -0.5, family = "Times") +
+  geom_text(aes(label = Count), vjust = -0.3, family = "Times") +
   labs(
     title = "Other Languages Spoken",
     x = "Language Group",
     y = "Count"
   ) +
-  theme_minimal(base_size = 12, base_family = "Times") +
+  theme_minimal(base_size = 10, base_family = "Times") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
+
 ```
-```{r parent score of overall data}
+
+<br>
+
+### Parent and Child Scores
+
+```{r parent score of overall data, echo=FALSE, message=FALSE,warning=FALSE}
 combined$Q64_1 <- as.numeric(combined$Q64_1)
 combined$Q38_1 <- as.numeric(combined$Q38_1)
 combined$Q39_1 <- as.numeric(combined$Q39_1)
@@ -167,16 +182,17 @@ combined <- combined %>%
   filter(parent_score > 0)
 
 ggplot(combined, aes(x = parent_score)) +
-  geom_histogram(binwidth = 5, fill = "#0F6B99", color = "white", alpha = 0.8) +
+  geom_histogram(binwidth = 2, fill = "#0F6B99", color = "white", alpha = 0.8) +
   labs(
-    title = "",
+    title = "Parent Scores",
     x = "Parent Score",
     y = "Frequency"
   ) +
   theme_minimal(base_size = 12, base_family = "Times") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
 ```
-```{r child score of overall data}
+
+```{r child score of overall data, echo=FALSE, message=FALSE,warning=FALSE}
 combined$Q55_1 <- as.numeric(combined$Q55_1)
 combined$Q56_1 <- as.numeric(combined$Q56_1)
 combined$Q57_1 <- as.numeric(combined$Q57_1)
@@ -189,16 +205,67 @@ combined <- combined %>%
   filter(parent_score > 0)
 
 ggplot(combined, aes(x = child_score)) +
-  geom_histogram(binwidth = 5, fill = "#0F6B99", color = "white", alpha = 0.8) +
+  geom_histogram(binwidth = 2, fill = "#0F6B99", color = "white", alpha = 0.8) +
   labs(
-    title = "",
+    title = "Child Scores",
     x = "Child Score",
     y = "Frequency"
   )  +
   theme_minimal(base_size = 12, base_family = "Times") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
 ```
-```{r parent score mean w/ & w/o sibs}
+<br>
+<br>
+<br>
+<br>
+<br>
+```{r box plot parent score, echo=FALSE, message=FALSE,warning=FALSE}
+ggplot(combined, aes(x = `Are there any other children who live in your home?`, y = parent_score)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.6) +
+  geom_jitter(width = 0.2, size = 2, alpha = 0.7) +
+ stat_summary(fun = mean, geom = "point", shape = 23, size = 2.5, fill = "red", color = "white") +
+  labs(
+    y = "Parent Score"
+  ) +
+  theme_minimal(base_size = 12, base_family = "Times") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
+```
+
+```{r box plot child score, echo=FALSE, message=FALSE,warning=FALSE}
+ggplot(combined, aes(x = `Are there any other children who live in your home?`, y = child_score)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.6) +
+  geom_jitter(width = 0.2, size = 2, alpha = 0.7) +
+ stat_summary(fun = mean, geom = "point", shape = 23, size = 2.5, fill = "red", color = "white") +
+  labs(
+    y = "Child Score"
+  ) +
+  theme_minimal(base_size = 12, base_family = "Times") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
+```
+
+```{r, echo=FALSE, message=FALSE,warning=FALSE}
+ggplot(combined, aes(x = `Are there any other children who live in your home?`, y = Q54_1)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.6) +
+  geom_jitter(width = 0.2, size = 2, alpha = 0.7) +
+ stat_summary(fun = mean, geom = "point", shape = 23, size = 2.5, fill = "red", color = "white") +
+  theme_minimal(base_size = 12, base_family = "Times") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
+```
+
+```{r, echo=FALSE, message=FALSE,warning=FALSE}
+combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+
+ggplot(combined, aes(x = `Are there any other children who live in your home?`, y = `Words Produced`)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.6) +
+  geom_jitter(width = 0.2, size = 2, alpha = 0.7) +
+ stat_summary(fun = mean, geom = "point", shape = 23, size = 2.5, fill = "red", color = "white") +
+  theme_minimal(base_size = 12, base_family = "Times") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
+```
+
+# IGNORE FOR NOW
+
+```{r parent score mean w/ & w/o sibs, echo=FALSE, message=FALSE,warning=FALSE}
 mean_with_siblings <- mean(combined$parent_score[
   combined$`Are there any other children who live in your home?` == "Yes"
 ], na.rm = TRUE)
@@ -210,9 +277,60 @@ mean_without_siblings <- mean(combined$parent_score[
 mean_with_siblings
 mean_without_siblings
 ```
-```{r comparing older/younger target child}
+
+```{r child score mean w/ & w/o sibs}
+child_mean_with_siblings <- mean(combined$child_score[
+  combined$`Are there any other children who live in your home?` == "Yes"
+], na.rm = TRUE)
+
+child_mean_without_siblings <- mean(combined$child_score[
+  combined$`Are there any other children who live in your home?` == "No"
+], na.rm = TRUE)
+
+child_mean_with_siblings
+child_mean_without_siblings
+```
+
+```{r}
+child_mean_lang <- mean(combined$child_score[
+  combined$`Are there any other languages spoken in your home?` != c("no","No","English","english")
+], na.rm = TRUE)
+
+parent_mean_lang <- mean(combined$parent_score[
+  combined$`Are there any other languages spoken in your home?` != c("no","No","English","english")
+], na.rm = TRUE)
+
+parent_mean_lang
+child_mean_lang
+```
+
+```{r}
+child_mean_nolang <- mean(combined$child_score[
+  combined$`Are there any other languages spoken in your home?` == c("no","No","English","english")
+], na.rm = TRUE)
+
+parent_mean_nolang <- mean(combined$parent_score[
+  combined$`Are there any other languages spoken in your home?` == c("no","No","English","english")
+], na.rm = TRUE)
+
+parent_mean_nolang
+child_mean_nolang
+```
+
+```{r}
+Q54_mean_lang <- mean(combined$Q54_1[
+  combined$`Are there any other languages spoken in your home?` != c("no","No","English","english")
+], na.rm = TRUE)
+
+Q54_mean_nolang <- mean(combined$Q54_1[
+  combined$`Are there any other languages spoken in your home?` == c("no","No","English","english")
+], na.rm = TRUE)
+
+Q54_mean_lang
+Q54_mean_nolang
+```
+
+```{r comparing older/younger target child, echo=FALSE, message=FALSE,warning=FALSE}
 range(combined$parent_score, na.rm = TRUE)
 mean(c(14, 33))
 ```
-
-
