@@ -213,7 +213,6 @@ mean_without_siblings
 ```{r comparing older/younger target child}
 range(combined$parent_score, na.rm = TRUE)
 mean(c(14, 33))
-
 ```
 
 
