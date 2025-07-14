@@ -85,9 +85,10 @@ ggplot(sibship_factors, aes(x = Sib_Identity))+
   ) +
   theme_minimal(base_size = 12, base_family = "Times") + 
       theme(plot.title = element_text(hjust = 0.5, size = 12, face = "bold")) 
+
 ```
 
-`Sibling Identity` refers to the child's relation to the target child. 
+`Sibling Identity` refers to the sibling's relation to the target child.
 
 ```{r sibling count in households, fig.width = 5, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
 household_counts <- sibship_factors %>%
@@ -190,6 +191,7 @@ ggplot(combined, aes(x = parent_score)) +
   ) +
   theme_minimal(base_size = 12, base_family = "Times") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
+
 ```
 
 ```{r child score of overall data, echo=FALSE, message=FALSE,warning=FALSE}
@@ -214,17 +216,16 @@ ggplot(combined, aes(x = child_score)) +
   theme_minimal(base_size = 12, base_family = "Times") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
 ```
-<br>
-<br>
-<br>
-<br>
-<br>
+
+<br> <br> <br> <br> <br>
+
 ```{r box plot parent score, echo=FALSE, message=FALSE,warning=FALSE}
 ggplot(combined, aes(x = `Are there any other children who live in your home?`, y = parent_score)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.6) +
   geom_jitter(width = 0.2, size = 2, alpha = 0.7) +
- stat_summary(fun = mean, geom = "point", shape = 23, size = 2.5, fill = "red", color = "white") +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.2, color = "red") +
   labs(
+    title = "Parent Scores of Families w/ More Than One Kid",
     y = "Parent Score"
   ) +
   theme_minimal(base_size = 12, base_family = "Times") +
@@ -235,8 +236,9 @@ ggplot(combined, aes(x = `Are there any other children who live in your home?`, 
 ggplot(combined, aes(x = `Are there any other children who live in your home?`, y = child_score)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.6) +
   geom_jitter(width = 0.2, size = 2, alpha = 0.7) +
- stat_summary(fun = mean, geom = "point", shape = 23, size = 2.5, fill = "red", color = "white") +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.2, color = "red") +
   labs(
+    title = "Child Scores of Families w/ More Than One Kid",
     y = "Child Score"
   ) +
   theme_minimal(base_size = 12, base_family = "Times") +
@@ -247,7 +249,7 @@ ggplot(combined, aes(x = `Are there any other children who live in your home?`, 
 ggplot(combined, aes(x = `Are there any other children who live in your home?`, y = Q54_1)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.6) +
   geom_jitter(width = 0.2, size = 2, alpha = 0.7) +
- stat_summary(fun = mean, geom = "point", shape = 23, size = 2.5, fill = "red", color = "white") +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.2, color = "red") +
   theme_minimal(base_size = 12, base_family = "Times") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
 ```
@@ -258,12 +260,14 @@ combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
 ggplot(combined, aes(x = `Are there any other children who live in your home?`, y = `Words Produced`)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.6) +
   geom_jitter(width = 0.2, size = 2, alpha = 0.7) +
- stat_summary(fun = mean, geom = "point", shape = 23, size = 2.5, fill = "red", color = "white") +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.2, color = "red") +
   theme_minimal(base_size = 12, base_family = "Times") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
 ```
 
-# IGNORE FOR NOW
+<br> <br> The CI seen in red shows the uncertainty due to sampling variability, likely because of the small sample size.
+
+<br> **\# IGNORE FOR NOW**
 
 ```{r parent score mean w/ & w/o sibs, echo=FALSE, message=FALSE,warning=FALSE}
 mean_with_siblings <- mean(combined$parent_score[
