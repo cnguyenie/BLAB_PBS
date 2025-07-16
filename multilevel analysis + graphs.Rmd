@@ -5,7 +5,7 @@ output:
     highlight: monochrome
     theme: journal
 ---
-### ALSO IGNORE FOR NOW 
+### ALSO IGNORE FOR NOW
 
 ```{r install, echo=FALSE, message=FALSE,warning=FALSE}
 
