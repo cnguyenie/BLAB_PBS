@@ -20,15 +20,6 @@ WS_6.24 <- read_excel("PBS CHS - WS_summary.xlsx")
 Qualtrics_6.24 <- read_excel("PBS CHS - Qualtrics.xlsx")
 ```
 ```{r initial cleaning}
-Qualtrics_6.24 <- Qualtrics_6.24 %>% 
-  filter(Progress == "100")
-
-WG_6.24 <- WG_6.24 %>% 
-  filter(completed == "TRUE")
-
-WG_6.24 <- WG_6.24 %>% 
-  filter(completed == "TRUE")
-
 WS_6.24 <- WS_6.24 %>% select(where(~!all(is.na(.x))))
 WG_6.24 <- WG_6.24 %>% select(where(~!all(is.na(.x))))
 WS_6.24 <- WS_6.24[, -c(7:10)]
@@ -155,21 +146,14 @@ colnames(Qualtrics_7.9) <- as.character(Qualtrics_7.9[1, ])
 Qualtrics_7.9 <- Qualtrics_7.9[-1, ]
 
 # Cleaning
-Qualtrics_7.9 <- Qualtrics_7.9 %>% 
-  filter(Progress == "100")
-
-WG_7.9 <- WG_7.9 %>% 
-  filter(completed == "TRUE")
-
-WS_7.9 <- WS_7.9 %>% 
-  filter(completed == "TRUE")
-
 
 WS_7.9 <- WS_7.9[, -c(1,4,7)]
 WS_7.9 <- WS_7.9[, -c(9:14)]
 
 WG_7.9 <- WG_7.9[, -c(1,4,7)]
 WG_7.9 <- WG_7.9[, -c(9:14)]
+
+Qualtrics_7.9[Qualtrics_7.9 == -99] <- NA
 
 Qualtrics_7.9 <- Qualtrics_7.9 %>%
   filter(
@@ -178,6 +162,7 @@ Qualtrics_7.9 <- Qualtrics_7.9 %>%
     `What is your first name or nickname?` != "-99",
     `What is your child's name or nickname?` != "-99"
   )
+
 Qualtrics_7.9 <- Qualtrics_7.9[, -c(1:16)]
 
 
@@ -210,7 +195,7 @@ combined <- bind_rows(combined, cbind(WG_7.9[2, ], Qualtrics_7.9[103, ]))
 ```
 ```{r cleaning}
 combined <- combined %>% select(where(~!all(is.na(.x))))
-# 78 obs. of 157 var.
+# 78 obs. of 156 var.
 saveRDS(combined, "combined.rds")
 ``` 
 
