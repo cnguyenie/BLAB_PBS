@@ -1,0 +1,118 @@
+---
+title: "multilevel analysis + graphs"
+output: 
+  html_document: 
+    highlight: monochrome
+    theme: journal
+---
+### ALSO IGNORE FOR NOW 
+
+```{r install, echo=FALSE, message=FALSE,warning=FALSE}
+
+#install.packages("readxl")
+#install.packages("readr")
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("ggplot2")
+#install.packages("stringr")
+#install.packages("dplyr")
+#install.packages("brms")
+#install.packages("knitr")
+#install.packages("kableExtra")
+
+library(brms)
+library(knitr)
+library(kableExtra)
+library(readxl)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(stringr)
+library(dplyr)
+
+
+combined <- readRDS("combined.rds")
+setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey")
+sibship_factors <- read_xlsx("Sibship_Factors.xlsx")
+
+sibship_factors <- sibship_factors %>%
+  filter(Sib_Identity != "n/a", Sib_Identity != "", !is.na(Sib_Identity))
+
+```
+
+```{r calculating parent and child scores, echo=FALSE, message=FALSE,warning=FALSE}
+combined$Q64_1 <- as.numeric(combined$Q64_1)
+combined$Q38_1 <- as.numeric(combined$Q38_1)
+combined$Q39_1 <- as.numeric(combined$Q39_1)
+combined$Q54_1 <- as.numeric(combined$Q54_1)
+combined$Q65_1 <- as.numeric(combined$Q65_1)
+
+combined$parent_score <- rowSums(combined[, c("Q64_1", "Q54_1", "Q65_1", "Q38_1", "Q39_1")], na.rm = TRUE)
+big_text_theme <- theme_minimal(base_size = 16) +
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16),
+    legend.text = element_text(size = 14)
+  )
+
+combined <- combined %>%
+  filter(parent_score > 0)
+
+
+combined$Q55_1 <- as.numeric(combined$Q55_1)
+combined$Q56_1 <- as.numeric(combined$Q56_1)
+combined$Q57_1 <- as.numeric(combined$Q57_1)
+combined$Q43_1 <- as.numeric(combined$Q43_1)
+combined$Q44_1 <- as.numeric(combined$Q44_1)
+
+combined$child_score <- rowSums(combined[, c("Q55_1", "Q56_1", "Q57_1", "Q43_1", "Q44_1")], na.rm = TRUE)
+
+combined <- combined %>%
+  filter(child_score > 0)
+
+```
+
+```{r words-produced, fig.width = 6, fig.height = 10 echo=FALSE, message=FALSE,warning=FALSE}
+combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+
+
+ggplot(combined, aes(x = `Words Produced`)) + 
+  geom_histogram(binwidth = 20, fill = "lightpink") +
+  geom_text(stat = "bin", binwidth = 20, aes(y = after_stat(count), label = ifelse(after_stat(count) == 0, "", after_stat(count)), vjust = -0.5)) +
+  labs(
+    title = "Distribution of Words Produced",
+    y = "Frequency"
+  ) + theme_minimal(base_size = 10, base_family = "Times")
+
+
+# this looks slightly off -- need to look at the full dataframe to make sure nothings weird
+
+```
+
+```{r words produced by sibling identity, fig.width = 6, fig.height = 10 echo=FALSE, message=FALSE,warning=FALSE}}}
+
+combined$subject_id <- as.character(combined$subject_id)
+sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
+
+sibs_allscores <- combined %>%
+  select(subject_id, child_score, parent_score, `Words Produced`) %>%
+  distinct(subject_id, .keep_all = TRUE)
+
+sibs_allscores <- combined %>%
+  select(subject_id, child_score, parent_score, `Words Produced`) %>%
+  distinct(subject_id, .keep_all = TRUE)
+
+ 
+sibship_factors <- sibship_factors %>%
+  left_join(
+    sibs_allscores,
+    by = c("Subject_ID" = "subject_id"))
+
+ggplot(sibs_allscores, aes(x = , y = `Words Produced`)) + 
+  geom_boxplot(outlier.shape = NA, alpha = 0.6)
+
+
+```
+

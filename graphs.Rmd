@@ -16,7 +16,13 @@ date: "2025-07-02"
 #install.packages("ggplot2")
 #install.packages("stringr")
 #install.packages("dplyr")
+#install.packages("brms")
+#install.packages("knitr")
+#install.packages("kableExtra")
 
+library(brms)
+library(knitr)
+library(kableExtra)
 library(readxl)
 library(readr)
 library(dplyr)
@@ -43,6 +49,8 @@ colnames(sib_yesno) <- c("Answer", "Count")
 ### Household and Sibling Data
 
 Refers to sibship factors such as sibling identity, ages of children, number of children in a household, etc.
+<br>
+<br>
 
 ```{r sibling count graph, fig.width = 5, fig.height = 5, echo=FALSE, message=FALSE,warning=FALSE}
 householdplot <- ggplot(sib_yesno, aes(x = Answer, y = Count)) + 
@@ -50,8 +58,8 @@ householdplot <- ggplot(sib_yesno, aes(x = Answer, y = Count)) +
   geom_text(aes(label = Count), vjust = -0.5, family = "Times") +
   labs(title = "How Many Households have Siblings?"
   ) + 
-  theme_minimal(base_size = 14, base_family = "Times") +
-    theme(plot.title = element_text(hjust = 0.5, size = 8, face = "bold")) 
+  theme_minimal(base_size = 12, base_family = "Times") +
+    theme(plot.title = element_text(hjust = 0.5, size = 10, face = "bold")) 
 
 householdplot
 ```
@@ -92,7 +100,7 @@ ggplot(sibship_factors, aes(x = Sib_Identity))+
 
 ```{r sibling count in households, fig.width = 5, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
 household_counts <- sibship_factors %>%
-  filter(Sib_Birthdate != "n/a") %>%   # only valid rows
+  filter(Sib_Birthdate != "n/a") %>%
   group_by(Subject_ID) %>%
   summarise(num_siblings = n(), .groups = "drop")
 
@@ -126,6 +134,37 @@ lang_other <- aggregate(Count ~ `Other Language?`, data = lang_other, sum)
 lang_other <- (lang_other[-c(5,14,15), ])
 ```
 
+```{r target vs sib gender}
+
+genderdf_long <- sibship_factors %>%
+  select(Target_Gender, Sib_Gender) %>%
+  pivot_longer(
+    cols = c(Target_Gender, Sib_Gender),
+    names_to = "Subject",
+    values_to = "Gender"
+  )
+
+genderdf_long <- genderdf_long %>%
+  filter(Gender != "n/a")
+
+genderplot <- ggplot(genderdf_long, aes(x = Gender, fill = Subject)) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Gender by Subject",
+    x = "Gender",
+    y = "Count"
+  ) +
+  geom_text(stat = "count", aes(label = after_stat(count),
+                                vjust = -0.3,
+                                family = "Times")) +
+  scale_fill_manual(values = c("Sib_Gender" = "plum", "Target_Gender" = "skyblue")) +
+  theme_minimal(base_size = 10, base_family = "Times")
+
+genderplot
+```
+
+<br>
+<br>
 ### Languages within Households
 
 <br> Out of 66 fully completed observations, 27 households speak another language, that is not English. This is after cleaning and removing any English answers or no answers. `Multilingual` refers to households that speak more than one language group.
@@ -204,7 +243,7 @@ combined$Q44_1 <- as.numeric(combined$Q44_1)
 combined$child_score <- rowSums(combined[, c("Q55_1", "Q56_1", "Q57_1", "Q43_1", "Q44_1")], na.rm = TRUE)
 
 combined <- combined %>%
-  filter(parent_score > 0)
+  filter(child_score > 0)
 
 ggplot(combined, aes(x = child_score)) +
   geom_histogram(binwidth = 2, fill = "#0F6B99", color = "white", alpha = 0.8) +
@@ -218,6 +257,7 @@ ggplot(combined, aes(x = child_score)) +
 ```
 
 <br> <br> <br> <br> <br>
+### Box Plots
 
 ```{r box plot parent score, echo=FALSE, message=FALSE,warning=FALSE}
 ggplot(combined, aes(x = `Are there any other children who live in your home?`, y = parent_score)) +
@@ -260,12 +300,25 @@ combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
 ggplot(combined, aes(x = `Are there any other children who live in your home?`, y = `Words Produced`)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.6) +
   geom_jitter(width = 0.2, size = 2, alpha = 0.7) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red") + stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red") +
   stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.2, color = "red") +
   theme_minimal(base_size = 12, base_family = "Times") +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold")) 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  theme_classic(base_size = 14) 
+  
 ```
 
 <br> <br> The CI seen in red shows the uncertainty due to sampling variability, likely because of the small sample size.
+
+<br>
+<br>
+**\# Analysis**
+Because we have both the MB-CDI (words produced) and the child score, we can use a multilevel model to model the two dependent variables. This is done to see if both variables are influenced by the same factors and if the two variables are correlated. 
+```{r}
+
+```
+
+
 
 <br> **\# IGNORE FOR NOW**
 
