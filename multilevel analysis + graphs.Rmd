@@ -1,11 +1,11 @@
 ---
-title: "multilevel analysis + graphs"
-output: 
-  html_document: 
+title: "Multilevel Analysis and Visualizations"
+output:
+  html_document:
     highlight: monochrome
     theme: journal
+  pdf_document: 
 ---
-### ALSO IGNORE FOR NOW
 
 ```{r install, echo=FALSE, message=FALSE,warning=FALSE}
 
@@ -20,6 +20,7 @@ output:
 #install.packages("knitr")
 #install.packages("kableExtra")
 #install.packages("ggcorrplot")
+
 
 library(brms)
 library(knitr)
@@ -69,42 +70,134 @@ combined <- combined %>%
 
 ```
 
-```{r words-produced graph, echo=FALSE, message=FALSE,warning=FALSE}
+# **Visualization of the Data**
+
+## MacArthur-Bates Communicative Development Inventory
+
+Parents who consented to participation were sent questionnaires asking about their reading beliefs, habits, household details, and more. Of those questionnaires was the MB-CDI. Depending on age, different versions were deployed — WG for children \<19 months and WS for children \>19 months. Parents who answered the WG version fall under the "Words Produced" graph while parents who answered the WS version fall under the "Total Produced" graph. These are the variables that will be used in the multilevel analysis.
+
+```{r words-produced graph, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
 combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
 
 ggplot(combined, aes(x = `Words Produced`)) + 
   geom_histogram(binwidth = 25, fill = "lightpink") +
-  geom_text(stat = "bin", binwidth = 25, aes(y = after_stat(count), label = ifelse(after_stat(count) == 0, "", after_stat(count)), vjust = -0.5)) +
-  scale_y_continuous(limits = c(0, 20)) +
+  scale_y_continuous(limits = c(0, 16)) +
   labs(
-    title = "Distribution of Words Produced",
+    title = "Distribution of 'Words Produced'",
     y = "Frequency"
   ) + theme_minimal(base_size = 10, base_family = "Times")
 
 
 # this looks slightly off -- need to look at the full dataframe to make sure nothings weird
 ```
-```{r total-produced graph, echo=FALSE, message=FALSE,warning=FALSE}
+
+```{r total-produced graph, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
 combined$`Total Produced` <- as.numeric(combined$`Total Produced`)
 
 ggplot(combined, aes(x = `Total Produced`)) + 
   geom_histogram(binwidth = 50, fill = "plum") +
-  geom_text(stat = "bin", binwidth = 50, aes(y = after_stat(count), label = ifelse(after_stat(count) == 0, "", after_stat(count)), vjust = -0.5)) +
-  scale_y_continuous(limits = c(0, 8)) +
+  scale_y_continuous(limits = c(0, 7)) +
   labs(
-    title = "Distribution of Total Produced",
+    title = "Distribution of 'Total Produced'",
     y = "Frequency"
   ) + theme_minimal(base_size = 10, base_family = "Times")
 
 ```
 
-```{r child score graphs, echo=FALSE, message=FALSE,warning=FALSE}
+## Age Breakdown
+
+```{r breakdown of age, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
+combined$age <- as.numeric(combined$age)
+
+ggplot(combined, aes(x = age)) + 
+  geom_histogram(binwidth = 1, fill = "plum") +
+  scale_y_continuous(limits = c(0, 11)) +
+  labs(
+    title = "Target Child Age Distribution'",
+    x = "Age (m)",
+    y = "Frequency"
+  ) + theme_minimal(base_size = 10, base_family = "Times")
+
+```
+
+```{r scatter plot of words produced by age, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
+
+ggplot(
+  combined %>% filter(!is.na(age)), aes(x = age, y = `Words Produced`)) +
+    geom_jitter(width = 0.2, height = 0, alpha = 0.6, size = 2) +
+  labs(
+  title = "MBCDI Words Produced by Child Age",
+  x = "Child Age (months)",
+  y = "Words Produced"
+) +
+  theme_minimal(base_size = 10, base_family = "Times")
+```
+
+```{r scatter plot of total produced by age, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
+
+ggplot(
+  combined %>% filter(!is.na(age)),
+  aes(x = age, y = `Total Produced`)) +
+    geom_jitter(width = 0.2, height = 0, alpha = 0.6, size = 2) +
+  labs(
+  title = "MBCDI Total Produced by Child Age",
+  x = "Child Age (months)",
+  y = "Words Produced"
+) +
+  theme_minimal(base_size = 10, base_family = "Times")
+```
+
+## Children and Parent Scores
+
+Specific questions were used to calculate respective parent and child scores. Each score takes into account 5 questions.
+
+### Parent Score
+
+Scores are out of 40 and the questions used to calculate the parent score are as followed:
+
+1.  When you read to your child to what extent does your child quietly listen to the story, or is reading an interactive activity?
+
+2.  When you read to your child, how often do you read the text on the page exactly as it appears?
+
+3.  When you read to your child, how often do you make up your own story and talk about the pictures on the page?
+
+4.  When you read to your child, how often do you name objects or actions in the pictures?
+
+5.  When you read to your child, how often do you ask your child questions about the objects or events in the story or in the pictures?
+
+```{r parent score plot, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=3}
+ggplot(combined, aes(x = parent_score)) +
+  geom_histogram(binwidth = 2, fill = "#0F6B99", color = "white", alpha = 0.8) +
+  labs(
+    title = "Distribution of Parent Scores",
+    x = "Parent Score",
+    y = "Frequency"
+  ) +
+  theme_minimal(base_size = 12, base_family = "Times")
+
+```
+
+### Child Score
+
+Scores are out of 40 and the questions used to calculate the child score are as followed:
+
+1.  When you read to your child, how often does your child touch things on the pages of the book?
+
+2.  When you read to your child, how often does your child snuggle and look at items on the page?
+
+3.  When you read to your child, how often does your child vocalize or make sounds or say words while you're reading?
+
+4.  When you read to your child, how often does your child point to objects on the page?
+
+5.  When you read to your child, how often does your child repeat words right after you say them?
+
+```{r child score graphs, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=3}
 ggplot(combined, aes(x = child_score)) + 
   geom_histogram(binwidth = 2, fill = "lightblue") +
-  geom_text(stat = "bin", binwidth = 2, aes(y = after_stat(count), label = ifelse(after_stat(count) == 0, "", after_stat(count)), vjust = -0.5)) +
-  scale_y_continuous(limits = c(0, 18)) +
+  scale_y_continuous(limits = c(0, 12)) +
   labs(
     title = "Distribution of Child Scores",
+    x = "Child Score",
     y = "Frequency"
   ) + theme_minimal(base_size = 10, base_family = "Times")
 ```
@@ -115,7 +208,7 @@ combined$subject_id <- as.character(combined$subject_id)
 sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
 
 id_scores <- combined %>%
-  select(subject_id, child_score, parent_score, `Words Produced`) %>%
+  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`) %>%
   distinct(subject_id, .keep_all = TRUE)
  
 sibship_factors <- sibship_factors %>%
@@ -123,20 +216,87 @@ sibship_factors <- sibship_factors %>%
     id_scores,
     by = c("Subject_ID" = "subject_id"))
 
+sib_scores <- combined %>%
+  filter(combined[[ which(grepl("Are there any other children", colnames(combined))) ]] == "Yes") %>%
+  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`)
 ```
 
-```{r box-plot of words produced by sib identity, echo=FALSE, message=FALSE,warning=FALSE}
+## Household Details and Sibling Identity
+
+After looking at the parent and child scores, the specific household details, specifically about sibling count and identity was graphed. `Sibling Identity` refers to the sibling's relation to the target child.
+
+```{r sibling count graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+sib_yesno <- table(
+  factor(
+    combined$`Are there any other children who live in your home?`,
+    levels = c("Yes", "No")
+  )
+)
+
+sib_yesno <- as.data.frame(sib_yesno)
+colnames(sib_yesno) <- c("Answer", "Count")
+
+householdplot <- ggplot(sib_yesno, aes(x = Answer, y = Count)) + 
+  geom_bar(stat = "identity", fill = "cadetblue", width = 0.6) +
+  geom_text(aes(label = Count), hjust = -0.3, family = "Times", size = 4) +
+  labs(title = "How Many Households have Siblings?"
+  ) + 
+  coord_flip() +
+  expand_limits(y = max(sib_yesno$Count) * 1.1) +
+  theme_minimal(base_size = 8, base_family = "Times") +
+    theme(plot.title = element_text(hjust = 0.5, size = 10))
+
+householdplot
+```
+
+```{r graph of sibling identity, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3.5}
+setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey")
+sibship_factors <- read_xlsx("Sibship_Factors.xlsx")
+
+sibship_factors <- sibship_factors %>%
+  filter(Sib_Identity != "n/a", Sib_Identity != "", !is.na(Sib_Identity))
+
+ggplot(sibship_factors, aes(x = Sib_Identity))+
+  geom_bar(fill = "lightcoral") +
+  geom_text(stat = "count", aes(label = ..count..),vjust = -0.3) +
+  scale_y_continuous(limits = c(0, 40)) +
+  labs(
+    title = "Sibling Identities",
+    x = "Sibling Identity",
+    y = "Count"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") + 
+      theme(plot.title = element_text(hjust = 0.5, size = 12) )
+
+```
+
+### Production and Correlation by Sibling Identity
+
+Because some sibling data derived from WG questionnaires and some from WS questionnaires, the visualization compiles both the `Total Produced` and `Words Produced` into one visualization categorized by sibling identity.
+
+```{r box-plot of words produced by sib identity, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
+combined$subject_id <- as.character(combined$subject_id)
+
+sibship_factors <- sibship_factors %>%
+  left_join(
+    combined %>% select(subject_id, child_score, parent_score, `Words Produced`, `Total Produced`),
+    by = c("Subject_ID" = "subject_id")
+  )
+
 ggplot(sibship_factors, aes(x = Sib_Identity, y = `Words Produced`)) +
   geom_boxplot(outlier.shape = NA, fill = "lightpink", alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
   labs(
-    title = "Words Produced by Sibling Identity",
+    title = "Words/Total Produced by Sibling Identity",
     x = "Sibling Identity",
     y = "Words Produced"
   ) +
-  theme_minimal(base_size = 10, base_family = "Times")
+  theme_minimal(base_size = 10, base_family = "Times") 
 ```
-```{r correlation between mbcdi and parent/child score, echo=FALSE, message=FALSE,warning=FALSE}
+
+```{r correlation between mbcdi and parent/child score, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 
 combined$`Total Produced` <- as.numeric(combined$`Total Produced`)
 combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
@@ -173,4 +333,103 @@ ggcorrplot(
   ggtitle("Correlations")
 ```
 
+# Frequentist Analysis of Data
+
+## Descriptive Statistics
+
+```{r table of descriptive stats, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+id_scores <- id_scores %>%
+  rename_with(~ gsub(" ", "_", .x)) %>%
+  mutate(across(c(age, child_score, parent_score, Words_Produced, Total_Produced), as.numeric))
+
+
+id_scores %>%
+  summarise(
+    across(
+      c(age, child_score, parent_score, Words_Produced, Total_Produced),
+           list(
+             Mean = ~ mean(.x, na.rm = TRUE),
+             SD = ~ sd(.x, na.rm = TRUE),
+             N = ~ sum(!is.na(.x))
+           ),
+       .names = "{.col}__{.fn}")
+  ) %>%
+  pivot_longer(
+    everything(),
+    names_to = c("Variable", "Statistic"),
+    names_sep = "__"
+  ) %>%
+  pivot_wider(
+    names_from = Statistic,
+    values_from = value
+  ) %>%
+  mutate(Variable = recode(Variable,
+                           age = "Child Age (m)",
+                           child_score = "Child Score",
+                           parent_score = "Parent Score",
+                           Words_Produced = "Words Produced",
+                           Total_Produced = "Total Produced")) %>%
+  select(Variable, Mean, SD, N) %>%
+  kable(
+    digits = 3,
+    align = "c"
+  ) %>%
+    kable_styling(full_width = FALSE, 
+                position = "center", 
+                bootstrap_options = c("striped", "hover", "condensed", "responsive")) %>%
+  row_spec(0, bold = TRUE, color = "white", background = "#4CAF50") %>% 
+  column_spec(1, bold = TRUE)
+
+```
+
+While most variables have around 70 participants, `Words Produced` and `Total Produced` have smaller N due to half the participants being WG and the other half being WS. This can lower power and increase uncertainty.
+
+`Child Score` and `Parent Score` means were fairly close to each other, however the SDs suggest variability, indicating that some children and parents score much higher and some much lower.
+
+`Words Produced` and `Total Produced` had a very large difference in mean and SDs, which suggest that some children were producing very few words while others were producing very many. This is to be expected because `Words Produced` data derived from WG, which were given to children \<19 months of age, while `Total Produced` came from WS, given to children \>19 months.
+
+But what about the data of children with siblings?
+```{r descriptive stats of children with siblings, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+sib_scores <- sib_scores %>%
+  rename_with(~ gsub(" ", "_", .x)) %>%
+  mutate(across(c(age, child_score, parent_score, Words_Produced, Total_Produced), as.numeric))
+
+
+sib_scores %>%
+  summarise(
+    across(
+      c(age, child_score, parent_score, Words_Produced, Total_Produced),
+           list(
+             Mean = ~ mean(.x, na.rm = TRUE),
+             SD = ~ sd(.x, na.rm = TRUE),
+             N = ~ sum(!is.na(.x))
+           ),
+       .names = "{.col}__{.fn}")
+  ) %>%
+  pivot_longer(
+    everything(),
+    names_to = c("Variable", "Statistic"),
+    names_sep = "__"
+  ) %>%
+  pivot_wider(
+    names_from = Statistic,
+    values_from = value
+  ) %>%
+  mutate(Variable = recode(Variable,
+                           age = "Child Age (m)",
+                           child_score = "Child Score",
+                           parent_score = "Parent Score",
+                           Words_Produced = "Words Produced",
+                           Total_Produced = "Total Produced")) %>%
+  select(Variable, Mean, SD, N) %>%
+  kable(
+    digits = 3,
+    align = "c"
+  ) %>%
+    kable_styling(full_width = FALSE, 
+                position = "center", 
+                bootstrap_options = c("striped", "hover", "condensed", "responsive")) %>%
+  row_spec(0, bold = TRUE, color = "white", background = "#4CAF50") %>% 
+  column_spec(1, bold = TRUE)
+```
 
