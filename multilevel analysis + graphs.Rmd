@@ -1,10 +1,10 @@
 ---
 title: "Multilevel Analysis and Visualizations"
 output:
+  pdf_document: 
   html_document:
     highlight: monochrome
     theme: journal
-  pdf_document: 
 ---
 
 ```{r install, echo=FALSE, message=FALSE,warning=FALSE}
@@ -102,6 +102,19 @@ ggplot(combined, aes(x = `Total Produced`)) +
     y = "Frequency"
   ) + theme_minimal(base_size = 10, base_family = "Times")
 
+```
+
+```{r words/total produced combined, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
+combined <- combined %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+
+ggplot(combined, aes(x = `Produced`)) + 
+  geom_histogram(binwidth = 40, fill = "lightgreen") +
+  scale_y_continuous(limits = c(0, 9)) +
+  labs(
+    title = "Distribution of 'Produced'",
+    y = "Frequency"
+  ) + theme_minimal(base_size = 10, base_family = "Times")
 ```
 
 ## Age Breakdown
@@ -270,10 +283,34 @@ ggplot(sibship_factors, aes(x = Sib_Identity))+
       theme(plot.title = element_text(hjust = 0.5, size = 12) )
 
 ```
+Due to the low number of observations in the individual younger and older sibling categories, the identities were combined into broader groups (“Older Siblings” and “Younger Siblings”) to improve interpretability and ensure sufficient sample size for analysis.
+```{r condensed sib identity, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3.5}
+sib_clean <- sibship_factors %>%
+  filter(Sib_Identity != "Twin") %>% 
+  mutate(
+    Sib_Group = case_when(
+      Sib_Identity %in% c("Older Brother", "Older Sister") ~ "Older Siblings",
+      Sib_Identity %in% c("Younger Brother", "Younger Sister") ~ "Younger Siblings"
+    )
+  )
+
+ggplot(sib_clean, aes(x = Sib_Group))+
+  geom_bar(fill = "skyblue", width = 0.5) +
+  geom_text(stat = "count", aes(label = ..count..),vjust = -0.3) +
+  scale_y_continuous(limits = c(0, 70)) +
+  labs(
+    title = "Sibling Identities",
+    x = "Sibling Identity",
+    y = "Count"
+  ) +
+  theme_minimal(base_size = 8, base_family = "Times") + 
+      theme(plot.title = element_text(hjust = 0.5, size = 8) )
+```
+
 
 ### Production and Correlation by Sibling Identity
 
-Because some sibling data derived from WG questionnaires and some from WS questionnaires, the visualization compiles both the `Total Produced` and `Words Produced` into one visualization categorized by sibling identity.
+Because some sibling data derived from WG questionnaires and some from WS questionnaires, the visualization compiles both the `Total Produced` and `Words Produced` into one visualization categorized by sibling identity. This was done with both the full sibling identity groups and the condensed version.
 
 ```{r box-plot of words produced by sib identity, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
@@ -286,6 +323,31 @@ sibship_factors <- sibship_factors %>%
   )
 
 ggplot(sibship_factors, aes(x = Sib_Identity, y = `Words Produced`)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightpink", alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+  labs(
+    title = "Words/Total Produced by Sibling Identity",
+    x = "Sibling Identity",
+    y = "Words Produced"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") 
+```
+```{r box plot sib condensed, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+sib_clean$Subject_ID <- as.character(sib_clean$Subject_ID)
+sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
+combined$subject_id <- as.character(combined$subject_id)
+
+
+sib_clean <- sib_clean %>%
+  left_join(
+    combined %>% select(subject_id, child_score, parent_score, `Words Produced`, `Total Produced`),
+    by = c("Subject_ID" = "subject_id")
+  )
+
+sib_clean <- sib_clean %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+
+ggplot(sib_clean, aes(x = Sib_Group, y = `Total Produced`)) +
   geom_boxplot(outlier.shape = NA, fill = "lightpink", alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
   labs(
@@ -333,7 +395,7 @@ ggcorrplot(
   ggtitle("Correlations")
 ```
 
-# Frequentist Analysis of Data
+# Frequentist Analysis of Data: Total Produced & Words Produced
 
 ## Descriptive Statistics
 
@@ -432,4 +494,76 @@ sib_scores %>%
   row_spec(0, bold = TRUE, color = "white", background = "#4CAF50") %>% 
   column_spec(1, bold = TRUE)
 ```
+## Comparing Groups
 
+To compare between two independent groups, a Mann-Whitney U Test would be ideal due to the skewed outcome (`Total & Words Produced`) and small sample sizes (within `Younger Siblings`). The advantages to this analysis is that it does not assume normality, can be used with ordinal data/skewed continuous data, and robust to outliers. It is important to note that this analysis is less powerful than a t-test *if* the data is really normally distributed and it tests for a difference in distributions, not specifically means.
+```{r wilcow test produced and sibs yes no, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+combined <- combined %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+
+sib_yesno_WT <- wilcox.test(
+  Produced ~ `Are there any other children who live in your home?`,
+  data = combined,
+  exact = FALSE
+)
+paste0("W = ", round(sib_yesno_WT$statistic, 2), 
+       ", p = ", signif(sib_yesno_WT$p.value, 3))
+```
+This Mann-Whitney U tested whether `Produced` differs between children - who have other children in the home (Yes), and those who do not (No). It indicated that there was no significant difference in language production between children with siblings and those without, W = 547.5, p = 0.21. 
+
+While there was no difference between children with and without siblings, we wondered if there was a difference within the subset of children who had siblings and if having an older versus a younger sibling was related to language production. 
+```{r wilcox test older vs young sib, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+sib_clean <- sibship_factors %>%
+  filter(Sib_Identity != "Twin") %>% 
+  mutate(
+    Sib_Group = case_when(
+      Sib_Identity %in% c("Older Brother", "Older Sister") ~ "Older Siblings",
+      Sib_Identity %in% c("Younger Brother", "Younger Sister") ~ "Younger Siblings"
+    )
+  )
+
+sib_clean <- sib_clean %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+
+old_young_WT <- wilcox.test(
+  Produced ~ Sib_Group,
+  data = sib_clean,
+  exact = FALSE
+)
+
+paste0("W = ", round(old_young_WT$statistic, 2), 
+       ", p = ", signif(old_young_WT$p.value, 3))
+```
+A Mann–Whitney U test was conducted to compare language production between children with older siblings and those with younger siblings. However, the Younger Siblings group only included two observations, limiting the validity of the comparison. The test was not statistically significant, W = 29.5, p=0.24, but results should be interpreted with caution given the small sample size in the Younger Siblings group. These results are from preliminary data, thus these results are not yet conclusive. 
+
+Initial analyses examined whether the presence of siblings (Yes/No) and, among those with siblings, whether having an older versus younger sibling were associated with differences in language production. Mann–Whitney U tests revealed no significant differences in either comparison.
+
+To further explore whether specific sibling identities (e.g., older brother, older sister, younger brother, younger sister) are associated with differences in language production, a one-way ANOVA was conducted to compare Produced across these groups.
+
+```{r anova, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+anova_model <- aov(Produced ~ Sib_Identity, data = sib_clean)
+anova_sum <- summary(anova_model)[[1]]
+anova_table <- as.data.frame(anova_sum)
+anova_table$`F value` <- round(anova_table$`F value`, 2)
+anova_table$`Pr(>F)`  <- signif(anova_table$`Pr(>F)`, 2)
+kable(anova_table, caption = "ANOVA Table")
+```
+Results from the ANOVA indicated significant effect of sibling identity on language production F(3,57)=2.84, suggesting that at least one group mean differed. Since the ANOVA was significant, post-hoc tests (Tukey's HSD) were conducted to determine which groups differ. 
+```{r tukey hsd, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+tukey <- TukeyHSD(anova_model)
+tukey <- as.data.frame(tukey$Sib_Identity)
+tukey$Comparison <- rownames(tukey)
+tukey <- tukey[, c("Comparison", "diff", "lwr", "upr", "p adj")]
+colnames(tukey) <- c("Comparison", "Difference", "Lower CI", "Upper CI", "Adj. P-Value")
+
+tukey$Difference <- round(tukey$Difference, 2)
+tukey$`Adj. P-Value` <- signif(tukey$`Adj. P-Value`, 2)
+tukey$`Lower CI` <- signif(tukey$`Lower CI`, 4)
+tukey$`Upper CI` <- signif(tukey$`Upper CI`, 4)
+
+knitr::kable(tukey, digits = 3, caption = "Tukey HSD Pos-Hoc Comparison")
+
+```
+Post-hoc comparisons using Tukey’s HSD test indicated that children with a younger sister (M = …) produced significantly more words than those with an older brother, p = .040, and those with an older sister, 
+p = .028. No other pairwise comparisons were significant. These results should be interpreted with caution, as the younger sibling groups currently have small sample sizes, and data collection is ongoing.
