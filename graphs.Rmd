@@ -122,52 +122,24 @@ ggplot(sib_distribution, aes(x = as.factor(num_siblings), y = n)) +
 `Sibling count` refers to how many siblings the target child has. In this context, `1` refers to a household of two children.
 
 ```{r languages in household + cleaning, echo=FALSE, message=FALSE,warning=FALSE}
-lang_other <- table(combined$`Are there any other languages spoken in your home?`)
-lang_other <- as.data.frame(lang_other)
+
+lang_other <- combined %>%
+  select(subject_id, `Are there any other languages spoken in your home?`) %>%
+  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
+  mutate(`Other Language?` = tolower(`Other Language?`)) %>%
+  filter(!`Other Language?` %in% c("no", "none", "english", "no /youtube french or spanish vidoes"))
 
 colnames(lang_other)[1] <- "Other Language?"
 colnames(lang_other)[2] <- "Count"
 
-lang_other$`Other Language?` <- tolower(lang_other$`Other Language?`)
-lang_other <- aggregate(Count ~ `Other Language?`, data = lang_other, sum)
-
-lang_other <- (lang_other[-c(5,14,15), ])
 ```
 
-```{r target vs sib gender}
-
-genderdf_long <- sibship_factors %>%
-  select(Target_Gender, Sib_Gender) %>%
-  pivot_longer(
-    cols = c(Target_Gender, Sib_Gender),
-    names_to = "Subject",
-    values_to = "Gender"
-  )
-
-genderdf_long <- genderdf_long %>%
-  filter(Gender != "n/a")
-
-genderplot <- ggplot(genderdf_long, aes(x = Gender, fill = Subject)) +
-  geom_bar(position = "dodge") +
-  labs(
-    title = "Gender by Subject",
-    x = "Gender",
-    y = "Count"
-  ) +
-  geom_text(stat = "count", aes(label = after_stat(count),
-                                vjust = -0.3,
-                                family = "Times")) +
-  scale_fill_manual(values = c("Sib_Gender" = "plum", "Target_Gender" = "skyblue")) +
-  theme_minimal(base_size = 10, base_family = "Times")
-
-genderplot
-```
 
 <br>
 <br>
 ### Languages within Households
 
-<br> Out of 66 fully completed observations, 27 households speak another language, that is not English. This is after cleaning and removing any English answers or no answers. `Multilingual` refers to households that speak more than one language group.
+<br> Out of 74 fully completed observations, 19 households speak another language, that is not English. This is after cleaning and removing any English answers or no answers. `Multilingual` refers to households that speak more than one language group.
 
 ```{r graph of other lang spoken, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
 lang_other <- lang_other %>%

@@ -306,6 +306,96 @@ ggplot(sib_clean, aes(x = Sib_Group))+
   theme_minimal(base_size = 8, base_family = "Times") + 
       theme(plot.title = element_text(hjust = 0.5, size = 8) )
 ```
+```{r other languages plot, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3.5}
+lang_yesno <- table(combined$`Are there any other languages spoken in your home?`) %>%
+  as.data.frame() %>%
+  rename(
+    Language = Var1,
+    Count = Freq
+  ) %>%
+  mutate(
+    lang_binary = case_when(
+      tolower(Language) %in% c("no", "none", "english") ~ "No",
+      TRUE ~ "Yes"
+    )
+  ) %>%
+  group_by(lang_binary) %>%
+  summarise(Count = sum(Count))
+
+ggplot(lang_yesno, aes(x = lang_binary, y = Count, fill = lang_binary)) +
+   geom_bar(stat = "identity", width = 0.6) +
+  geom_text(aes(label = Count), vjust = -0.3) +
+  labs(
+    title = "Other Languages Spoken in Home",
+    x = "Response",
+    y = "Count"
+  ) +
+  scale_fill_manual(values = c("Yes" = "royalblue", "No" = "salmon")) +
+  scale_y_continuous(limits = c(0, 55)) +
+  theme_minimal(base_size = 8, base_family = "Times") + 
+      theme(plot.title = element_text(hjust = 0.5, size = 8) )
+```
+
+```{r lang df with scores, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
+lang_df <- combined %>%
+  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`) %>%
+  distinct(subject_id, .keep_all = TRUE) %>%
+  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
+    mutate(
+    lang_binary = case_when(
+      tolower(`Other Language?`) %in% c("no", "none", "english") ~ "No",
+      TRUE ~ "Yes"))
+
+  lang_df <- lang_df %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+```
+
+
+```{r graph of other lang spoken, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
+lang_other <- combined %>%
+  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`) %>%
+  distinct(subject_id, .keep_all = TRUE) %>%
+  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
+  mutate(`Other Language?` = tolower(`Other Language?`)) %>%
+  filter(!`Other Language?` %in% c("no", "none", "english", "no /youtube french or spanish vidoes"))
+
+lang_other$`Other Language?` <- tolower(lang_other$`Other Language?`)
+
+lang_other <- lang_other %>%
+  filter(!is.na(`Other Language?`), !is.na(`Other Language?`))
+
+lang_other <- lang_other %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+
+
+lang_other <- lang_other %>%
+  filter(!`Other Language?` %in% c("no", "none", "english", "no /youtube french or spanish vidoes"))
+
+lang_other <- lang_other %>%
+  mutate(Language_Group = case_when(
+    grepl(",", `Other Language?`) ~ "Multilingual",  # overrides all
+    grepl("spanish", `Other Language?`, ignore.case = TRUE) ~ "Spanish",
+    `Other Language?` %in% c("cantonese", "mandarin chinese", "korean", "malyalam", "urdu", "mandarin") ~ "Asian",
+    `Other Language?` %in% c("arabic", "farsi", "hebrew") ~ "Middle Eastern",
+    `Other Language?` == "russian" ~ "Slavic",
+    `Other Language?` == "albanian" ~ "Indo-European",
+    `Other Language?` == "asl" ~ "Sign Language",
+    TRUE ~ NA_character_
+  ))
+
+  lang_other %>%
+  count(Language_Group) %>%  # summarize counts
+  ggplot(aes(x = Language_Group, y = n)) +
+  geom_bar(stat = "identity", fill = "plum", width = 0.7) +
+  geom_text(aes(label = n), vjust = -0.3, family = "Times") +
+  labs(
+    title = "Other Languages Spoken",
+    x = "Language Group",
+    y = "Count"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
 
 
 ### Production and Correlation by Sibling Identity
@@ -567,3 +657,40 @@ knitr::kable(tukey, digits = 3, caption = "Tukey HSD Pos-Hoc Comparison")
 ```
 Post-hoc comparisons using Tukey’s HSD test indicated that children with a younger sister (M = …) produced significantly more words than those with an older brother, p = .040, and those with an older sister, 
 p = .028. No other pairwise comparisons were significant. These results should be interpreted with caution, as the younger sibling groups currently have small sample sizes, and data collection is ongoing.
+
+### Analysis by Language
+```{r production by lang group, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+lang_other$subject_id <- as.character(lang_other$subject_id)
+
+ggplot(lang_other, aes(x = Language_Group, y = `Produced`)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightpink", alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+  labs(
+    title = "Production by Language Groups",
+    x = "Language",
+    y = "Production"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") 
+```
+
+```{r box plot lang production, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+ggplot(lang_df, aes(x = lang_binary, y = `Produced`)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightpink", alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+  labs(
+    title = "Production by if Another Language is Spoken",
+    x = "Response",
+    y = "Production"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") 
+```
+```{r wilcox test lang yes no, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+lang_yesno_WT <- wilcox.test(
+  Produced ~ lang_binary,
+  data = lang_df,
+  exact = FALSE
+)
+paste0("W = ", round(lang_yesno_WT$statistic, 2), 
+       ", p = ", signif(lang_yesno_WT$p.value, 3))
+```
