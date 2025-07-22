@@ -453,13 +453,16 @@ ggplot(sib_clean, aes(x = Sib_Group, y = `Total Produced`)) +
 combined$`Total Produced` <- as.numeric(combined$`Total Produced`)
 combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
 
+combined <- combined %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+
 corr_plot <- cor(
-  combined[, c("Words Produced", "child_score", "parent_score", "Total Produced")],
+  combined[, c("child_score", "parent_score", "Produced")],
   use = "pairwise.complete.obs"
 )
 
-colnames(corr_plot) <- c("Words Produced", "Child Score", "Parent Score", "Total Produced")
-rownames(corr_plot) <- c("Words Produced", "Child Score", "Parent Score", "Total Produced")
+colnames(corr_plot) <- c("Child Score", "Parent Score", "Produced")
+rownames(corr_plot) <- c("Child Score", "Parent Score", "Produced")
 
 
 ggcorrplot(
@@ -483,6 +486,12 @@ ggcorrplot(
     y = NULL   
   ) +
   ggtitle("Correlations")
+```
+```{r corr test spearmen, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+cor.test(combined$Produced, combined$child_score, method = "spearman")
+cor.test(combined$Produced, combined$parent_score,method = "spearman")
+cor.test(combined$parent_score, combined$child_score, method = "spearman")
+
 ```
 
 # Frequentist Analysis of Data: Total Produced & Words Produced
@@ -684,6 +693,7 @@ ggplot(lang_df, aes(x = lang_binary, y = `Produced`)) +
   ) +
   theme_minimal(base_size = 10, base_family = "Times") 
 ```
+
 ```{r wilcox test lang yes no, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 
 lang_yesno_WT <- wilcox.test(
@@ -694,3 +704,5 @@ lang_yesno_WT <- wilcox.test(
 paste0("W = ", round(lang_yesno_WT$statistic, 2), 
        ", p = ", signif(lang_yesno_WT$p.value, 3))
 ```
+
+
