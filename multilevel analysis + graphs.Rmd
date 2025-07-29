@@ -1,5 +1,5 @@
 ---
-title: "Multilevel Analysis and Visualizations"
+title: "Beyond the Bookshelf: Family Influences on Early Language Production"
 output:
   pdf_document: 
   html_document:
@@ -76,14 +76,21 @@ combined <- combined %>%
 
 Parents who consented to participation were sent questionnaires asking about their reading beliefs, habits, household details, and more. Of those questionnaires was the MB-CDI. Depending on age, different versions were deployed — WG for children \<19 months and WS for children \>19 months. Parents who answered the WG version fall under the "Words Produced" graph while parents who answered the WS version fall under the "Total Produced" graph. These are the variables that will be used in the multilevel analysis.
 
-```{r words-produced graph, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
+```{r combining comprehended + produced WG new column, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
+combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
 combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+combined$WG_standardized<- rowSums(combined[, c("Words Understood", "Words Produced")], na.rm = TRUE)
 
-ggplot(combined, aes(x = `Words Produced`)) + 
-  geom_histogram(binwidth = 25, fill = "lightpink") +
-  scale_y_continuous(limits = c(0, 16)) +
+```
+
+```{r words-produced graph, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
+
+ggplot(combined, aes(x = WG_standardized)) + 
+  geom_histogram(binwidth = 50, fill = "lightpink") +
+  scale_y_continuous(limits = c(0, 10)) +
   labs(
-    title = "Distribution of 'Words Produced'",
+    title = "Distribution of 'Words Produced & Comprehended in 11 to 19m Children'",
+    x = "Production & Comprehension",
     y = "Frequency"
   ) + theme_minimal(base_size = 10, base_family = "Times")
 
@@ -91,7 +98,7 @@ ggplot(combined, aes(x = `Words Produced`)) +
 # this looks slightly off -- need to look at the full dataframe to make sure nothings weird
 ```
 
-```{r total-produced graph, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
+```{r total-produced graph WS, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
 combined$`Total Produced` <- as.numeric(combined$`Total Produced`)
 
 ggplot(combined, aes(x = `Total Produced`)) + 
@@ -102,19 +109,6 @@ ggplot(combined, aes(x = `Total Produced`)) +
     y = "Frequency"
   ) + theme_minimal(base_size = 10, base_family = "Times")
 
-```
-
-```{r words/total produced combined, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
-combined <- combined %>%
-  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
-
-ggplot(combined, aes(x = `Produced`)) + 
-  geom_histogram(binwidth = 40, fill = "lightgreen") +
-  scale_y_continuous(limits = c(0, 9)) +
-  labs(
-    title = "Distribution of 'Produced'",
-    y = "Frequency"
-  ) + theme_minimal(base_size = 10, base_family = "Times")
 ```
 
 ## Age Breakdown
@@ -134,16 +128,23 @@ ggplot(combined, aes(x = age)) +
 ```
 
 ```{r scatter plot of words produced by age, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
+combined$age <- as.numeric(as.character(combined$age))
+combined$WG_standardized <- as.numeric(as.character(combined$WG_standardized))
 
 ggplot(
-  combined %>% filter(!is.na(age)), aes(x = age, y = `Words Produced`)) +
-    geom_jitter(width = 0.2, height = 0, alpha = 0.6, size = 2) +
-  labs(
-  title = "MBCDI Words Produced by Child Age",
-  x = "Child Age (months)",
-  y = "Words Produced"
+  data = combined %>%
+    filter(!is.na(age), !is.na(WG_standardized), WG_standardized != 0, age <= 19),
+  aes(x = age, y = WG_standardized)
 ) +
+  geom_jitter(width = 0.2, height = 10, alpha = 0.6, size = 2) +
+  geom_smooth(method = "loess", se = TRUE, color = "forestgreen", size = 1.2) +
+  labs(
+    title = "MBCDI Words Produced/Comprehended (WG) by Child Age",
+    x = "Child Age (months)",
+    y = "Words Produced"
+  ) +
   theme_minimal(base_size = 10, base_family = "Times")
+
 ```
 
 ```{r scatter plot of total produced by age, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
@@ -151,7 +152,10 @@ ggplot(
 ggplot(
   combined %>% filter(!is.na(age)),
   aes(x = age, y = `Total Produced`)) +
+    scale_x_continuous(limits = c(18, 28)) +
+  scale_y_continuous(limits = c(0, 600)) +
     geom_jitter(width = 0.2, height = 0, alpha = 0.6, size = 2) +
+  geom_smooth(method = "loess", se = TRUE, color = "forestgreen", size = 1.2) +
   labs(
   title = "MBCDI Total Produced by Child Age",
   x = "Child Age (months)",
@@ -162,7 +166,7 @@ ggplot(
 
 ## Children and Parent Scores
 
-Specific questions were used to calculate respective parent and child scores. Each score takes into account 5 questions.
+Specific questions were used to calculate respective parent and child scores. Each score takes into account 5 questions. The child score is a score that describes children's behaviors during reading session such as pointing at things on the page. The parent score is what parents do during the session, such as extending beyond the text of the book.
 
 ### Parent Score
 
@@ -234,7 +238,9 @@ sib_scores <- combined %>%
   select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`)
 ```
 
-## Household Details and Sibling Identity
+## Household Details
+
+### Sibling Count and Identity
 
 After looking at the parent and child scores, the specific household details, specifically about sibling count and identity was graphed. `Sibling Identity` refers to the sibling's relation to the target child.
 
@@ -283,7 +289,9 @@ ggplot(sibship_factors, aes(x = Sib_Identity))+
       theme(plot.title = element_text(hjust = 0.5, size = 12) )
 
 ```
-Due to the low number of observations in the individual younger and older sibling categories, the identities were combined into broader groups (“Older Siblings” and “Younger Siblings”) to improve interpretability and ensure sufficient sample size for analysis.
+
+Due to the low number of observations in the individual younger and older sibling categories, the identities were combined into broader groups (“Older Siblings” and “Younger Siblings”) to improve interpret ability and ensure sufficient sample size for analysis.
+
 ```{r condensed sib identity, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3.5}
 sib_clean <- sibship_factors %>%
   filter(Sib_Identity != "Twin") %>% 
@@ -306,113 +314,38 @@ ggplot(sib_clean, aes(x = Sib_Group))+
   theme_minimal(base_size = 8, base_family = "Times") + 
       theme(plot.title = element_text(hjust = 0.5, size = 8) )
 ```
-```{r other languages plot, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3.5}
-lang_yesno <- table(combined$`Are there any other languages spoken in your home?`) %>%
-  as.data.frame() %>%
-  rename(
-    Language = Var1,
-    Count = Freq
-  ) %>%
-  mutate(
-    lang_binary = case_when(
-      tolower(Language) %in% c("no", "none", "english") ~ "No",
-      TRUE ~ "Yes"
-    )
-  ) %>%
-  group_by(lang_binary) %>%
-  summarise(Count = sum(Count))
 
-ggplot(lang_yesno, aes(x = lang_binary, y = Count, fill = lang_binary)) +
-   geom_bar(stat = "identity", width = 0.6) +
-  geom_text(aes(label = Count), vjust = -0.3) +
-  labs(
-    title = "Other Languages Spoken in Home",
-    x = "Response",
-    y = "Count"
-  ) +
-  scale_fill_manual(values = c("Yes" = "royalblue", "No" = "salmon")) +
-  scale_y_continuous(limits = c(0, 55)) +
-  theme_minimal(base_size = 8, base_family = "Times") + 
-      theme(plot.title = element_text(hjust = 0.5, size = 8) )
-```
-
-```{r lang df with scores, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
-lang_df <- combined %>%
-  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`) %>%
-  distinct(subject_id, .keep_all = TRUE) %>%
-  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
-    mutate(
-    lang_binary = case_when(
-      tolower(`Other Language?`) %in% c("no", "none", "english") ~ "No",
-      TRUE ~ "Yes"))
-
-  lang_df <- lang_df %>%
-  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
-```
-
-
-```{r graph of other lang spoken, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
-lang_other <- combined %>%
-  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`) %>%
-  distinct(subject_id, .keep_all = TRUE) %>%
-  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
-  mutate(`Other Language?` = tolower(`Other Language?`)) %>%
-  filter(!`Other Language?` %in% c("no", "none", "english", "no /youtube french or spanish vidoes"))
-
-lang_other$`Other Language?` <- tolower(lang_other$`Other Language?`)
-
-lang_other <- lang_other %>%
-  filter(!is.na(`Other Language?`), !is.na(`Other Language?`))
-
-lang_other <- lang_other %>%
-  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
-
-
-lang_other <- lang_other %>%
-  filter(!`Other Language?` %in% c("no", "none", "english", "no /youtube french or spanish vidoes"))
-
-lang_other <- lang_other %>%
-  mutate(Language_Group = case_when(
-    grepl(",", `Other Language?`) ~ "Multilingual",  # overrides all
-    grepl("spanish", `Other Language?`, ignore.case = TRUE) ~ "Spanish",
-    `Other Language?` %in% c("cantonese", "mandarin chinese", "korean", "malyalam", "urdu", "mandarin") ~ "Asian",
-    `Other Language?` %in% c("arabic", "farsi", "hebrew") ~ "Middle Eastern",
-    `Other Language?` == "russian" ~ "Slavic",
-    `Other Language?` == "albanian" ~ "Indo-European",
-    `Other Language?` == "asl" ~ "Sign Language",
-    TRUE ~ NA_character_
-  ))
-
-  lang_other %>%
-  count(Language_Group) %>%  # summarize counts
-  ggplot(aes(x = Language_Group, y = n)) +
-  geom_bar(stat = "identity", fill = "plum", width = 0.7) +
-  geom_text(aes(label = n), vjust = -0.3, family = "Times") +
-  labs(
-    title = "Other Languages Spoken",
-    x = "Language Group",
-    y = "Count"
-  ) +
-  theme_minimal(base_size = 10, base_family = "Times") +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
-```
-
-
-### Production and Correlation by Sibling Identity
+#### Production, Correlation, and Parent/Child Score by Sibling Identity
 
 Because some sibling data derived from WG questionnaires and some from WS questionnaires, the visualization compiles both the `Total Produced` and `Words Produced` into one visualization categorized by sibling identity. This was done with both the full sibling identity groups and the condensed version.
 
-```{r box-plot of words produced by sib identity, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+```{r box-plot of words produced by sib identity, echo=FALSE, fig.align='center', fig.height=3, fig.width=5, message=FALSE, warning=FALSE}
 sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
 combined$subject_id <- as.character(combined$subject_id)
+combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
+combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+combined$WG_standardized <- rowSums(combined[, c("Words Understood", "Words Produced")], na.rm = TRUE)
+
+sibship_factors <- sibship_factors %>% 
+  left_join(
+    combined
+    %>%
+      select(subject_id, child_score, parent_score, `Words Understood`, `Words Produced`, `Total Produced`),
+    by = c("Subject_ID" = "subject_id")
+  ) 
+
+sibship_factors$WG_standardized <- rowSums(sibship_factors[, c("Words Understood.x", "Words Produced")], na.rm = TRUE)
+
+sibship_factors <- sibship_factors %>%
+  mutate(Produced = coalesce(`WG_standardized`, `Total Produced`)) %>% filter(!is.na(Produced), !is.na(Sib_Identity))
 
 sibship_factors <- sibship_factors %>%
   left_join(
-    combined %>% select(subject_id, child_score, parent_score, `Words Produced`, `Total Produced`),
+    combined %>% select(subject_id, child_score, parent_score, `WG_standardized`, `Total Produced`),
     by = c("Subject_ID" = "subject_id")
-  )
+  ) 
 
-ggplot(sibship_factors, aes(x = Sib_Identity, y = `Words Produced`)) +
+ggplot(sibship_factors, aes(x = Sib_Identity, y = `WG_standardized`)) +
   geom_boxplot(outlier.shape = NA, fill = "lightpink", alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
   labs(
@@ -422,22 +355,26 @@ ggplot(sibship_factors, aes(x = Sib_Identity, y = `Words Produced`)) +
   ) +
   theme_minimal(base_size = 10, base_family = "Times") 
 ```
+
 ```{r box plot sib condensed, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 sib_clean$Subject_ID <- as.character(sib_clean$Subject_ID)
 sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
 combined$subject_id <- as.character(combined$subject_id)
+combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
+combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+combined$WG_standardized<- rowSums(combined[, c("Words Understood", "Words Produced")], na.rm = TRUE)
 
 
 sib_clean <- sib_clean %>%
   left_join(
-    combined %>% select(subject_id, child_score, parent_score, `Words Produced`, `Total Produced`),
+    combined %>% select(subject_id, child_score, parent_score, `WG_standardized`, `Total Produced`),
     by = c("Subject_ID" = "subject_id")
   )
 
 sib_clean <- sib_clean %>%
-  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+  mutate(Produced = coalesce(`WG_standardized`, `Total Produced`)) %>% filter(!is.na(Produced), !is.na(Sib_Group))
 
-ggplot(sib_clean, aes(x = Sib_Group, y = `Total Produced`)) +
+ggplot(sib_clean, aes(x = Sib_Group, y = `Produced`)) +
   geom_boxplot(outlier.shape = NA, fill = "lightpink", alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
   labs(
@@ -487,11 +424,106 @@ ggcorrplot(
   ) +
   ggtitle("Correlations")
 ```
+
 ```{r corr test spearmen, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 cor.test(combined$Produced, combined$child_score, method = "spearman")
 cor.test(combined$Produced, combined$parent_score,method = "spearman")
 cor.test(combined$parent_score, combined$child_score, method = "spearman")
 
+```
+
+### Multilingual Households
+
+Multilingual households were also looked at. Out of 65 families, only 19 have another language, that is not English, spoken at home. The responses were also categorized by language group. `Multilingual` refers to households that speak more than one language group. 
+
+```{r other languages plot, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3.5}
+lang_yesno <- table(combined$`Are there any other languages spoken in your home?`) %>%
+  as.data.frame() %>%
+  rename(
+    Language = Var1,
+    Count = Freq
+  ) %>%
+  mutate(
+    lang_binary = case_when(
+      tolower(Language) %in% c("no", "none", "english") ~ "No",
+      TRUE ~ "Yes"
+    )
+  ) %>%
+  group_by(lang_binary) %>%
+  summarise(Count = sum(Count))
+
+ggplot(lang_yesno, aes(x = lang_binary, y = Count, fill = lang_binary)) +
+   geom_bar(stat = "identity", width = 0.6) +
+  geom_text(aes(label = Count), vjust = -0.3) +
+  labs(
+    title = "Another Language at Home?",
+    x = "Response",
+    y = "Count"
+  ) +
+  scale_fill_manual(values = c("Yes" = "royalblue", "No" = "salmon")) +
+  scale_y_continuous(limits = c(0, 55)) +
+  theme_minimal(base_size = 8, base_family = "Times") + 
+      theme(plot.title = element_text(hjust = 0.5, size = 8) )
+```
+
+```{r lang df with scores, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
+lang_df <- combined %>%
+  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`) %>%
+  distinct(subject_id, .keep_all = TRUE) %>%
+  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
+    mutate(
+    lang_binary = case_when(
+      tolower(`Other Language?`) %in% c("no", "none", "english") ~ "No",
+      TRUE ~ "Yes"))
+
+  lang_df <- lang_df %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+```
+
+```{r graph of other lang spoken, fig.width = 5, fig.height = 5, echo=FALSE, message=FALSE,warning=FALSE}
+lang_other <- combined %>%
+  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`) %>%
+  distinct(subject_id, .keep_all = TRUE) %>%
+  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
+  mutate(`Other Language?` = tolower(`Other Language?`)) %>%
+  filter(!`Other Language?` %in% c("no", "none", "english", "no /youtube french or spanish vidoes"))
+
+lang_other$`Other Language?` <- tolower(lang_other$`Other Language?`)
+
+lang_other <- lang_other %>%
+  filter(!is.na(`Other Language?`), !is.na(`Other Language?`))
+
+lang_other <- lang_other %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+
+
+lang_other <- lang_other %>%
+  filter(!`Other Language?` %in% c("no", "none", "english", "no /youtube french or spanish vidoes"))
+
+lang_other <- lang_other %>%
+  mutate(Language_Group = case_when(
+    grepl(",", `Other Language?`) ~ "Multilingual",  # overrides all
+    grepl("spanish", `Other Language?`, ignore.case = TRUE) ~ "Spanish",
+    `Other Language?` %in% c("cantonese", "mandarin chinese", "korean", "malyalam", "urdu", "mandarin") ~ "Asian",
+    `Other Language?` %in% c("arabic", "farsi", "hebrew") ~ "Middle Eastern",
+    `Other Language?` == "russian" ~ "Slavic",
+    `Other Language?` == "albanian" ~ "Indo-European",
+    `Other Language?` == "asl" ~ "Sign Language",
+    TRUE ~ NA_character_
+  ))
+
+  lang_other %>%
+  count(Language_Group) %>%  # summarize counts
+  ggplot(aes(x = Language_Group, y = n)) +
+  geom_bar(stat = "identity", fill = "plum", width = 0.7) +
+  geom_text(aes(label = n), vjust = -0.3, family = "Times") +
+  labs(
+    title = "Other Languages Spoken",
+    x = "Language Group",
+    y = "Count"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 ```
 
 # Frequentist Analysis of Data: Total Produced & Words Produced
@@ -550,6 +582,7 @@ While most variables have around 70 participants, `Words Produced` and `Total Pr
 `Words Produced` and `Total Produced` had a very large difference in mean and SDs, which suggest that some children were producing very few words while others were producing very many. This is to be expected because `Words Produced` data derived from WG, which were given to children \<19 months of age, while `Total Produced` came from WS, given to children \>19 months.
 
 But what about the data of children with siblings?
+
 ```{r descriptive stats of children with siblings, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 sib_scores <- sib_scores %>%
   rename_with(~ gsub(" ", "_", .x)) %>%
@@ -593,9 +626,11 @@ sib_scores %>%
   row_spec(0, bold = TRUE, color = "white", background = "#4CAF50") %>% 
   column_spec(1, bold = TRUE)
 ```
+
 ## Comparing Groups
 
 To compare between two independent groups, a Mann-Whitney U Test would be ideal due to the skewed outcome (`Total & Words Produced`) and small sample sizes (within `Younger Siblings`). The advantages to this analysis is that it does not assume normality, can be used with ordinal data/skewed continuous data, and robust to outliers. It is important to note that this analysis is less powerful than a t-test *if* the data is really normally distributed and it tests for a difference in distributions, not specifically means.
+
 ```{r wilcow test produced and sibs yes no, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 combined <- combined %>%
   mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
@@ -608,9 +643,11 @@ sib_yesno_WT <- wilcox.test(
 paste0("W = ", round(sib_yesno_WT$statistic, 2), 
        ", p = ", signif(sib_yesno_WT$p.value, 3))
 ```
-This Mann-Whitney U tested whether `Produced` differs between children - who have other children in the home (Yes), and those who do not (No). It indicated that there was no significant difference in language production between children with siblings and those without, W = 547.5, p = 0.21. 
 
-While there was no difference between children with and without siblings, we wondered if there was a difference within the subset of children who had siblings and if having an older versus a younger sibling was related to language production. 
+This Mann-Whitney U tested whether `Produced` differs between children - who have other children in the home (Yes), and those who do not (No). It indicated that there was no significant difference in language production between children with siblings and those without, W = 547.5, p = 0.21.
+
+While there was no difference between children with and without siblings, we wondered if there was a difference within the subset of children who had siblings and if having an older versus a younger sibling was related to language production.
+
 ```{r wilcox test older vs young sib, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 sib_clean <- sibship_factors %>%
   filter(Sib_Identity != "Twin") %>% 
@@ -633,7 +670,8 @@ old_young_WT <- wilcox.test(
 paste0("W = ", round(old_young_WT$statistic, 2), 
        ", p = ", signif(old_young_WT$p.value, 3))
 ```
-A Mann–Whitney U test was conducted to compare language production between children with older siblings and those with younger siblings. However, the Younger Siblings group only included two observations, limiting the validity of the comparison. The test was not statistically significant, W = 29.5, p=0.24, but results should be interpreted with caution given the small sample size in the Younger Siblings group. These results are from preliminary data, thus these results are not yet conclusive. 
+
+A Mann–Whitney U test was conducted to compare language production between children with older siblings and those with younger siblings. However, the Younger Siblings group only included two observations, limiting the validity of the comparison. The test was not statistically significant, W = 29.5, p=0.24, but results should be interpreted with caution given the small sample size in the Younger Siblings group. These results are from preliminary data, thus these results are not yet conclusive.
 
 Initial analyses examined whether the presence of siblings (Yes/No) and, among those with siblings, whether having an older versus younger sibling were associated with differences in language production. Mann–Whitney U tests revealed no significant differences in either comparison.
 
@@ -647,7 +685,9 @@ anova_table$`F value` <- round(anova_table$`F value`, 2)
 anova_table$`Pr(>F)`  <- signif(anova_table$`Pr(>F)`, 2)
 kable(anova_table, caption = "ANOVA Table")
 ```
-Results from the ANOVA indicated significant effect of sibling identity on language production F(3,57)=2.84, suggesting that at least one group mean differed. Since the ANOVA was significant, post-hoc tests (Tukey's HSD) were conducted to determine which groups differ. 
+
+Results from the ANOVA indicated significant effect of sibling identity on language production F(3,57)=2.84, suggesting that at least one group mean differed. Since the ANOVA was significant, post-hoc tests (Tukey's HSD) were conducted to determine which groups differ.
+
 ```{r tukey hsd, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 
 tukey <- TukeyHSD(anova_model)
@@ -664,10 +704,22 @@ tukey$`Upper CI` <- signif(tukey$`Upper CI`, 4)
 knitr::kable(tukey, digits = 3, caption = "Tukey HSD Pos-Hoc Comparison")
 
 ```
-Post-hoc comparisons using Tukey’s HSD test indicated that children with a younger sister (M = …) produced significantly more words than those with an older brother, p = .040, and those with an older sister, 
-p = .028. No other pairwise comparisons were significant. These results should be interpreted with caution, as the younger sibling groups currently have small sample sizes, and data collection is ongoing.
+
+Post-hoc comparisons using Tukey’s HSD test indicated that children with a younger sister (M = …) produced significantly more words than those with an older brother, p = .040, and those with an older sister, p = .028. No other pairwise comparisons were significant. These results should be interpreted with caution, as the younger sibling groups currently have small sample sizes, and data collection is ongoing.
 
 ### Analysis by Language
+```{r box plot lang production, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+ggplot(lang_df, aes(x = lang_binary, y = `Produced`)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightpink", alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+  labs(
+    title = "Production by if Another Language is Spoken",
+    x = "Response",
+    y = "Production"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") 
+```
+
 ```{r production by lang group, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 lang_other$subject_id <- as.character(lang_other$subject_id)
 
@@ -677,18 +729,6 @@ ggplot(lang_other, aes(x = Language_Group, y = `Produced`)) +
   labs(
     title = "Production by Language Groups",
     x = "Language",
-    y = "Production"
-  ) +
-  theme_minimal(base_size = 10, base_family = "Times") 
-```
-
-```{r box plot lang production, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
-ggplot(lang_df, aes(x = lang_binary, y = `Produced`)) +
-  geom_boxplot(outlier.shape = NA, fill = "lightpink", alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
-  labs(
-    title = "Production by if Another Language is Spoken",
-    x = "Response",
     y = "Production"
   ) +
   theme_minimal(base_size = 10, base_family = "Times") 
@@ -705,4 +745,23 @@ paste0("W = ", round(lang_yesno_WT$statistic, 2),
        ", p = ", signif(lang_yesno_WT$p.value, 3))
 ```
 
+```{r full yes no sib df with scores, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
+sib_df <- combined %>%
+  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `Are there any other children who live in your home?`) %>%
+  distinct(subject_id, .keep_all = TRUE) %>%
+  rename(`Have Sib?` = `Are there any other children who live in your home?`) 
 
+  sib_df <- sib_df %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+```
+
+```{r wilcox test sib child/parent score, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+sib_parentchild_WT <- wilcox.test(
+  Produced ~ `Have Sib?`,
+  data = sib_df,
+  exact = FALSE
+)
+paste0("W = ", round(sib_parentchild_WT$statistic, 2), 
+       ", p = ", signif(sib_parentchild_WT$p.value, 3))
+```
