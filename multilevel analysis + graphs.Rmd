@@ -40,7 +40,13 @@ download.file("https://www.zotero.org/styles/apa", destfile = "apa.csl")
 #install.packages("flextable")
 #install.packages("RVAideMemoire")
 #install.packages("gt")
+#install.packages("MASS")
+#install.packages("broom")
 
+
+library(MASS)
+library(dplyr)
+library(broom)
 library(RVAideMemoire)
 library(brms)
 library(knitr)
@@ -99,6 +105,17 @@ combined$child_score <- rowSums(combined[, c("Q55_1", "Q56_1", "Q57_1", "Q43_1",
 
 combined <- combined %>%
   filter(child_score > 0)
+
+
+sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
+combined$subject_id <- as.character(combined$subject_id)
+
+combined <- combined %>%
+  mutate(
+    `Words Understood` = as.numeric(`Words Understood`),
+    `Words Produced` = as.numeric(`Words Produced`)
+  )
+
 
 ```
 
@@ -227,19 +244,29 @@ sib_scores %>%
 
 ```{r words-understood graph, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
 combined$`Words Understood` <- as.numeric(as.character(combined$`Words Understood`))
+n_wu <- combined %>%
+  filter(!subject_id %in% c(35, 25, 14)) %>%
+  summarise(N = sum(!is.na(`Words Understood`))) %>%
+  pull(N)
+total_N <- nrow(combined)
 
-ggplot(combined, aes(x = `Words Understood`)) + 
+ggplot(combined %>% filter(!subject_id %in% c(35, 25, 14)),
+       aes(x = `Words Understood`)) + 
   geom_histogram(binwidth = 30, fill = "pink2", color = "white") +
   scale_y_continuous(limits = c(0, 8)) +
   labs(
     x = "Word Comprehension (WG)",
     y = "Frequency"
-  ) + theme_minimal(base_size = 10, base_family = "Times") + custom_theme
+  ) + 
+  annotate("text", x = Inf, y = Inf, label = paste0("N = ", n_wu),
+           hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
+theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 
 ```
 
 ```{r words-produced graph, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
 combined$`Words Produced` <- as.numeric(as.character(combined$`Words Produced`))
+n_wp <- sum(!is.na(combined$`Words Produced`))
 
 ggplot(combined %>% filter(!subject_id %in% c(35, 25, 14)),
        aes(x = `Words Produced`)) + 
@@ -248,11 +275,15 @@ ggplot(combined %>% filter(!subject_id %in% c(35, 25, 14)),
   labs(
     x = "Word Production (WG)",
     y = "Frequency"
-  ) + theme_minimal(base_size = 12, base_family = "Times") + custom_theme
+  ) + 
+    annotate("text", x = Inf, y = Inf, label = paste0("N = ", n_wp),
+           hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
+  theme_minimal(base_size = 12, base_family = "Times") + custom_theme
 ```
 
 ```{r total-produced graph WS, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=6, fig.height=2.5}
 combined$`Total Produced` <- as.numeric(combined$`Total Produced`)
+n_tp <- sum(!is.na(combined$`Total Produced`))
 
 ggplot(combined, aes(x = `Total Produced`)) + 
   geom_histogram(binwidth = 25, fill = "pink2", color = "white") +
@@ -260,7 +291,10 @@ ggplot(combined, aes(x = `Total Produced`)) +
   labs(
     x = "Total Production (WS)",
     y = "Frequency"
-  ) + theme_minimal(base_size = 10, base_family = "Times") + custom_theme
+  ) + 
+    annotate("text", x = Inf, y = Inf, label = paste0("N = ", n_tp),
+           hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
+  theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 
 ```
 
@@ -275,7 +309,10 @@ ggplot(combined, aes(x = age)) +
   labs(
     x = "Age (m)",
     y = "Frequency"
-  ) + theme_minimal(base_size = 10, base_family = "Times") + custom_theme
+  ) + 
+    annotate("text", x = Inf, y = Inf, label = paste0("N = ", total_N),
+           hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
+  theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 
 ```
 
@@ -295,6 +332,8 @@ ggplot(
     x = "Age (months)",
     y = "Words Understood (WG)"
   ) +
+      annotate("text", x = Inf, y = Inf, label = paste0("N = ", n_wu),
+           hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
   theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 ```
 
@@ -314,6 +353,8 @@ ggplot(
     x = "Age (months)",
     y = "Words Produced (WG)"
   ) +
+      annotate("text", x = Inf, y = Inf, label = paste0("N = ", n_wp),
+           hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
   theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 ```
 
@@ -330,6 +371,8 @@ ggplot(
   x = "Age (months)",
   y = "Total Produced (WG)"
 ) +
+  annotate("text", x = Inf, y = Inf, label = paste0("N = ", n_tp),
+           hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
   theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 ```
 
@@ -368,6 +411,10 @@ ggplot(combined, aes(x = parent_score)) +
     x = "Parent Score",
     y = "Frequency"
   ) +
+annotate("text", x = Inf, y = Inf, label = paste0("N = ", total_N),
+           hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
+  annotate("text", x = Inf, y = Inf, label = paste0("N = ", total_N),
+           hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
   theme_minimal(base_size = 12, base_family = "Times") + custom_theme
 
 ```
@@ -381,7 +428,10 @@ ggplot(combined, aes(x = child_score)) +
   labs(
     x = "Child Score",
     y = "Frequency"
-  ) + theme_minimal(base_size = 10, base_family = "Times") + custom_theme
+  ) + 
+    annotate("text", x = Inf, y = Inf, label = paste0("N = ", total_N),
+           hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
+  theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 ```
 
 ## Household Details
@@ -465,25 +515,6 @@ ggplot(lang_yesno, aes(x = lang_binary, y = Count, fill = lang_binary)) +
   theme_minimal(base_size = 8, base_family = "Times") + custom_theme +   theme(legend.position = "none")
 ```
 
-```{r lang df with scores, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
-lang_df <- combined %>%
-  select(subject_id, age, child_score, parent_score, `Words Understood`, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`, `Are there any other children who live in your home?`) %>%
-  distinct(subject_id, .keep_all = TRUE) %>%
-  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
-    mutate(
-    lang_binary = case_when(
-      tolower(`Other Language?`) %in% c("no", "none", "english") ~ "No",
-      TRUE ~ "Yes")) %>%
-  rename(`Have Sibs?` = `Are there any other children who live in your home?`) %>%
-    mutate(
-    sib_binary = case_when(
-      tolower(`Have Sibs?`) %in% c("no", "none", "english") ~ "No",
-      TRUE ~ "Yes"))
-
-  lang_df <- lang_df %>%
-  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
-```
-
 ```{r graph of other lang spoken, fig.width = 5, fig.height = 5, echo=FALSE, message=FALSE,warning=FALSE}
 lang_other <- combined %>%
   select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`) %>%
@@ -542,21 +573,33 @@ Due to the low observations in the younger siblings identity, it was taken out o
 ```{r box-plot of words produced by sib identity, echo=FALSE, fig.align='center', fig.height=3, fig.width=5, message=FALSE, warning=FALSE}
 sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
 combined$subject_id <- as.character(combined$subject_id)
-combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
 combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
-
+combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
 
 sibship_factors <- sibship_factors %>%
   left_join(
-    combined %>% select(subject_id, child_score, parent_score, `Total Produced`, `Words Produced`, `Words Understood`),
+    combined %>%
+      select(subject_id, `Words Produced`, `Words Understood`, `Total Produced`),
     by = c("Subject_ID" = "subject_id")
-  ) 
+  )
 
 ggplot(sibship_factors %>%
          filter(!Sib_Identity %in% c("Twin", "Younger Brother", "Younger Sister")),
   aes(x = Sib_Identity, y = `Words Produced`)) +
   geom_boxplot(outlier.shape = NA, fill = "plum3", alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+    scale_y_continuous(limits = c(0,450)) +
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+    ) +
   labs(
     x = "Sibling Identity",
     y = "Words Produced (WG)"
@@ -572,9 +615,52 @@ combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
 
 ggplot(sibship_factors %>%
          filter(!Sib_Identity %in% c("Twin", "Younger Brother", "Younger Sister")),
+  aes(x = Sib_Identity, y = `Words Understood`)) +
+  geom_boxplot(outlier.shape = NA, fill = "plum3", alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+    ) +
+  labs(
+    x = "Sibling Identity",
+    y = "Words Understood (WG)"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") + custom_theme
+
+```
+
+```{r box-plot of total produced by sib identity, echo=FALSE, fig.align='center', fig.height=3, fig.width=5, message=FALSE, warning=FALSE}
+sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
+combined$subject_id <- as.character(combined$subject_id)
+combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
+combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+combined$`Total Produced` <- as.numeric(combined$`Total Produced`)
+sibship_factors$`Total Produced` <- as.numeric(sibship_factors$`Total Produced`)
+
+ggplot(sibship_factors %>%
+         filter(!Sib_Identity %in% c("Twin", "Younger Brother", "Younger Sister")),
   aes(x = Sib_Identity, y = `Total Produced`)) +
   geom_boxplot(outlier.shape = NA, fill = "plum3", alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+    ) +
   labs(
     x = "Sibling Identity",
     y = "Total Produced (WS)"
@@ -582,6 +668,7 @@ ggplot(sibship_factors %>%
   theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 
 ```
+
 
 ```{r correlation between mbcdi and parent/child score, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 
@@ -620,7 +707,7 @@ ggcorrplot(
   ) + custom_theme
 ```
 
-```{r corr test spearman | child score , echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+```{r corr test spearman | child score , echo=FALSE, message=FALSE,warning=FALSE}
 combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
 combined$child_score <- as.numeric(combined$child_score)
 combined$parent_score <- as.numeric(combined$parent_score)
@@ -633,13 +720,13 @@ WU_CS <- cor.test(combined$`Words Understood`, combined$child_score, method = "s
 TP_CS <- cor.test(combined$`Total Produced`, combined$child_score, method = "spearman", exact = TRUE)
 ```
 
-```{r corr test spearman | parent score, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+```{r corr test spearman | parent score, echo=FALSE, message=FALSE,warning=FALSE}
 WP_PS <- cor.test(combined$`Words Produced`, combined$parent_score, method = "spearman", exact = TRUE)
 WU_PS <- cor.test(combined$`Words Understood`, combined$parent_score, method = "spearman", exact = TRUE)
 TP_PS <- cor.test(combined$`Total Produced`, combined$parent_score, method = "spearman", exact = TRUE)
 ```
 
-```{r summary table of the spearman tests, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+```{r summary table of the spearman tests, echo=FALSE, message=FALSE,warning=FALSE}
 
 summary_table <- data.frame(
   Predictor = rep(c("Words Produced", "Words Understood", "Total Produced"), 2),
@@ -688,39 +775,36 @@ summary_table %>%
 ```
 
 # Comparing Sibling Identities
-```{r wilcox WU and sib yes no, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+```{r wilcox WU and sib yes no, echo=FALSE, message=FALSE, warning=FALSE}
 
 sib_yesno_WU <- wilcox.test(
   `Words Understood` ~ `Are there any other children who live in your home?`,
   data = combined,
   exact = TRUE
 )
-paste0("W = ", round(sib_yesno_WU$statistic, 2), 
-       ", p = ", signif(sib_yesno_WU$p.value, 3))
+
 
 ```
 
-```{r wilcox WP and sib yes no, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+```{r wilcox WP and sib yes no, echo=FALSE, message=FALSE, warning=FALSE}
 
 sib_yesno_WP <- wilcox.test(
   `Words Produced` ~ `Are there any other children who live in your home?`,
   data = combined,
   exact = TRUE
 )
-paste0("W = ", round(sib_yesno_WP$statistic, 2), 
-       ", p = ", signif(sib_yesno_WP$p.value, 3))
+
 
 ```
 
-```{r wilcox TP and sib yes no, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+```{r wilcox TP and sib yes no, echo=FALSE, message=FALSE, warning=FALSE}
 
 sib_yesno_TP <- wilcox.test(
   `Total Produced` ~ `Are there any other children who live in your home?`,
   data = combined,
   exact = FALSE
 )
-paste0("W = ", round(sib_yesno_TP$statistic, 2), 
-       ", p = ", signif(sib_yesno_TP$p.value, 3))
+
 
 ```
 
@@ -743,11 +827,13 @@ sib_wilcox_results <- data.frame(
 sib_wilcox_results$p_raw <- NULL
 
 kable(sib_wilcox_results, , digits = 3) %>%
-  kable_styling(full_width = FALSE, font_size = 12) %>%
+  kable_styling(full_width = FALSE, font_size = 18) %>%
   column_spec(1:ncol(sib_wilcox_results), extra_css = "font-family: 'Times New Roman';") %>%
   row_spec(0, bold = TRUE)
 
 ```
+
+To examine whether language outcomes differed based on sibling presence, Wilcoxon rank-sum tests were conducted comparing children with and without siblings across three outcome variables.
 
 None of the comparisons reached statistical significance. These results suggest that the presence of siblings in the household was not significantly related to vocabulary comprehension or production. This analysis supports the need to consider more nuanced sibling factors, such as sibling identity (e.g., older vs. younger) or birth order, in understanding early language variation.
 
@@ -780,11 +866,11 @@ anovaWU_table$`p-value`[is.na(anovaWU_table$`p-value`)] <- ""
 knitr::kable(anovaWU_table, caption = "ANOVA: Older Siblings and Language Production")
 
 ```
-A one-way ANOVA was conducted to examine whether language production differed between toddlers with an older brother and those with an older sister. Results revealed no significant effect of sibling identity on words understood, F(1, 39) = 0.06, p = .80. This suggests that, within the subset of children with older siblings, whether the sibling was a brother or sister was not associated with differences in early language comprehension.
+
+To further explore whether specific sibling identities are associated with differences in language production, a one-way ANOVA was conducted. Due to the low N values, the ANOVA only examined whether language production differed between toddlers with an older brother and those with an older sister. Results revealed no significant effect of sibling identity on words understood, F(1, 39) = 0.06, p = .80. This suggests that, within the subset of children with older siblings, whether the sibling was a brother or sister was not associated with differences in early language comprehension. However, these results should be interpreted with caution due to the relatively small sample size, which may limit statistical power and the ability to detect subtle effects.
 
 # Analysis by Language
-
-## Visualizations
+Curious to see if there were differences in language outcome if the household was multilingual.
 
 ```{r full yes no sib df with scores, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
 sib_df <- combined %>%
@@ -797,11 +883,42 @@ sib_df <- combined %>%
 ```
 
 
+```{r lang df with scores, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
+lang_df <- combined %>%
+  select(subject_id, age, child_score, parent_score, `Words Understood`, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`, `Are there any other children who live in your home?`) %>%
+  distinct(subject_id, .keep_all = TRUE) %>%
+  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
+    mutate(
+    lang_binary = case_when(
+      tolower(`Other Language?`) %in% c("no", "none", "english") ~ "No",
+      TRUE ~ "Yes")) %>%
+  rename(`Have Sibs?` = `Are there any other children who live in your home?`) %>%
+    mutate(
+    sib_binary = case_when(
+      tolower(`Have Sibs?`) %in% c("no", "none", "english") ~ "No",
+      TRUE ~ "Yes"))
+
+  lang_df <- lang_df %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+```
+
 ```{r box plot words understood, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
 ggplot(lang_df %>% filter(!subject_id %in% c(35, 25, 14)),
   aes(x = lang_binary, y = `Words Understood`)) +
   geom_boxplot(outlier.shape = NA, fill = "steelblue2", alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+    stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+    ) +
   labs(
     title = "Words Understood",
     x = "Multilingual Household",
@@ -811,10 +928,23 @@ ggplot(lang_df %>% filter(!subject_id %in% c(35, 25, 14)),
 ```
 
 ```{r box plot words produced, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+
 ggplot(lang_df %>% filter(!subject_id %in% c(35, 25, 14)),
   aes(x = lang_binary, y = `Words Produced`)) +
   geom_boxplot(outlier.shape = NA, fill = "steelblue2", alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+    stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+    ) +
   labs(
     title = "Words Produced",
     x = "Multilingual Household",
@@ -824,10 +954,23 @@ ggplot(lang_df %>% filter(!subject_id %in% c(35, 25, 14)),
 ```
 
 ```{r box plot total produced, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+lang_df$`Total Produced` <- as.numeric(lang_df$`Total Produced`)
+
 ggplot(lang_df,
   aes(x = lang_binary, y = `Total Produced`)) +
   geom_boxplot(outlier.shape = NA, fill = "steelblue2", alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+    stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+    ) +
   labs(
     title = "Total Produced",
     x = "Multilingual Household",
@@ -843,8 +986,6 @@ lang_yesno_WU <- wilcox.test(
   data = lang_df,
   exact = FALSE
 )
-paste0("W = ", round(lang_yesno_WU$statistic, 2), 
-       ", p = ", signif(lang_yesno_WU$p.value, 3))
 ```
 
 ```{r wilcox WP lang yes no, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
@@ -854,8 +995,7 @@ lang_yesno_WP <- wilcox.test(
   data = lang_df,
   exact = FALSE
 )
-paste0("W = ", round(lang_yesno_WP$statistic, 2), 
-       ", p = ", signif(lang_yesno_WP$p.value, 3))
+
 ```
 
 ```{r wilcox TP lang yes no, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
@@ -865,8 +1005,7 @@ lang_yesno_TP <- wilcox.test(
   data = lang_df,
   exact = FALSE
 )
-paste0("W = ", round(lang_yesno_TP$statistic, 2), 
-       ", p = ", signif(lang_yesno_TP$p.value, 3))
+
 ```
 
 ```{r wilcox lang result table, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
@@ -888,8 +1027,393 @@ lang_wilcox_results <- data.frame(
 lang_wilcox_results$p_raw <- NULL
 
 kable(lang_wilcox_results, , digits = 3) %>%
-  kable_styling(full_width = FALSE, font_size = 12) %>%
+  kable_styling(full_width = FALSE, font_size = 18) %>%
   column_spec(1:ncol(lang_wilcox_results), extra_css = "font-family: 'Times New Roman';") %>%
   row_spec(0, bold = TRUE)
 
 ```
+
+To examine whether language outcomes differed based on additional language presence within households, Wilcoxon rank-sum tests were conducted comparing children in monolingual and multilingual households across three outcome variables.
+
+None of the comparisons reached statistical significance. These results suggest that the presence of an additional language in the household was not significantly related to vocabulary comprehension or production. However, these results should be interpreted with caution due to the relatively small sample size, which may limit statistical power and the ability to detect subtle effects.
+
+# Reading Beliefs, Other Habits, and The In-Between
+
+In addition to the primary parent and child reading measures, we collected exploratory items to capture broader household dynamics that may influence early language development. These items were not used in calculating the main outcome scores but were designed to provide supplementary insight into the child’s daily environment. Questions asked were answered using a Likert Scale 1 (don't agree) to 7 (fully agree). 
+
+## Reading Sessions
+### Reading Session Duration
+
+```{r df with reading, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+reading_df <- combined %>%
+  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `How much time  (in minutes) on average do you spend reading with your child in one session?`, `Please rate each statement about reading from 1 (don't agree) to 7 (fully agree) - Reading time is for educational purposes so that my child can learn new words`, `Please rate each statement about reading from 1 (don't agree) to 7 (fully agree) - Reading time is for social purposes to bond with my child`, `Are there any other children who live in your home?`)
+
+reading_df <- reading_df %>%
+  rename(reading_time = `How much time  (in minutes) on average do you spend reading with your child in one session?`)
+
+reading_df <- reading_df %>%
+  rename(Edu_purp = `Please rate each statement about reading from 1 (don't agree) to 7 (fully agree) - Reading time is for educational purposes so that my child can learn new words`)
+
+reading_df <- reading_df %>%
+  rename(Social_purp = `Please rate each statement about reading from 1 (don't agree) to 7 (fully agree) - Reading time is for social purposes to bond with my child`)
+
+reading_df <- reading_df %>%
+  rename(Sib_YN = `Are there any other children who live in your home?`)
+
+```
+
+```{r reading time PS/CS test, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+reading_df <- reading_df %>%
+  mutate(reading_time = factor(reading_time,
+    levels = c("<5 minutes", "5-10 mins", "10-20 mins", ">20 mins"),
+    ordered = TRUE))
+
+
+reading_PS <- cor.test(as.numeric(reading_df$reading_time), reading_df$parent_score, method = "spearman", use = "complete.obs")
+reading_CS <- cor.test(as.numeric(reading_df$reading_time), reading_df$child_score, method = "spearman", use = "complete.obs")
+
+```
+
+```{r reading time PS boxplot, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+ggplot(reading_df, aes(x = reading_time, y = parent_score)) +
+  geom_boxplot(fill = "plum3", alpha = 0.7) +
+  labs(x = "Time Reading per Session", y = "Parent Score") +
+  theme_minimal(base_family = "Times")
+```
+
+```{r reading time CS boxplot, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+ggplot(reading_df, aes(x = reading_time, y = child_score)) +
+  geom_boxplot(fill = "plum3", alpha = 0.7) +
+  labs(x = "Time Reading per Session", y = "Child Score") +
+  theme_minimal(base_family = "Times")
+```
+
+```{r reading CS/PS spearman result table, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+readingCSPS_wilcox_results <- data.frame(
+  Outcome = c("Parent Score", "Child Score"), 
+  `W Statistic` = c(
+    round(reading_PS$statistic, 1),
+    round(reading_CS$statistic, 1)
+  ),
+  `p-value` = c(
+    reading_PS$p.value,
+    reading_CS$p.value
+  )
+)
+
+readingCSPS_wilcox_results$p_raw <- NULL
+
+kable(readingCSPS_wilcox_results, , digits = 3) %>%
+  kable_styling(full_width = FALSE, font_size = 18) %>%
+  column_spec(1:ncol(readingCSPS_wilcox_results), extra_css = "font-family: 'Times New Roman';") %>%
+  row_spec(0, bold = TRUE)
+
+```
+
+```{r ordinal regression reading CS, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+
+readingCS_ord <- MASS::polr(reading_time ~ child_score + parent_score,
+                            data = reading_df, Hess = TRUE)
+
+term_labels <- c(
+  "child_score" = "Child Score",
+  "parent_score" = "Parent Score"
+)
+
+readingCS_model <- broom::tidy(readingCS_ord, conf.int = TRUE) %>%
+  as_tibble() %>%  
+  mutate(
+    p.value = 2 * (1 - pnorm(abs(statistic))),
+    signif = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      p.value < 0.1   ~ ".",
+      TRUE ~ ""
+    )
+  )
+
+
+readingCS_coef_table <- readingCS_model %>%
+  filter(term %in% names(term_labels)) %>%
+  mutate(Term = term_labels[term]) %>%
+  select(
+    Term,
+    estimate,
+    std.error,
+    statistic,
+    conf.low,
+    conf.high,
+    p.value,
+    signif
+  ) %>%
+  rename(
+    `Estimate (β)` = estimate,
+    `Std. Error` = std.error,
+    `t value` = statistic,
+    `CI Low` = conf.low,
+    `CI High` = conf.high,
+    `p-value` = p.value,
+    ` ` = signif
+  ) %>%
+  mutate(across(where(is.numeric), round, 4))
+
+
+readingCS_coef_table %>%
+  kable("html", align = "c", caption = "Ordinal Regression Coefficients") %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  row_spec(0, bold = TRUE) %>%
+  column_spec(1:ncol(readingCS_coef_table), extra_css = "font-family: 'Times New Roman', Times, serif;")
+```
+
+We used an ordinal logistic regression to examine whether parent or child scores predicted longer durations of reading sessions. The dependent variable (reading_time) was treated as an ordered factor with four categories ranging from "<5 minutes" to ">20 minutes".
+
+The model revealed a marginal positive effect of child score on reading time:
+β = 0.091, p = .052. This indicates that as child score will marginally increase the more time is spent reading.
+
+In contrast, parent score was not a significant predictor (p = .749).
+The model suggests that reading duration is more strongly associated with child characteristics than parent-reported beliefs or engagement.
+
+### Reading Session Beliefs
+
+```{r means of edu and soc purp by sibs, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+reading_df$Edu_purp <- as.numeric(reading_df$Edu_purp)
+reading_df$Social_purp <- as.numeric(reading_df$Social_purp)
+
+purp_summary <- reading_df %>%
+  group_by(Sib_YN) %>%
+  summarise(
+    `Mean (Edu)` = round(mean(Edu_purp, na.rm = TRUE), 2),
+    `SD (Edu)` = round(sd(Edu_purp, na.rm = TRUE), 2),
+    `Mean (Social)` = round(mean(Social_purp, na.rm = TRUE), 2),
+    `SD (Social)` = round(sd(Social_purp, na.rm = TRUE), 2),
+    N = n()
+  )
+
+edu_test <- wilcox.test(Edu_purp ~ Sib_YN, data = reading_df)
+soc_test <- wilcox.test(Social_purp ~ Sib_YN, data = reading_df)
+
+purp_summary <- purp_summary %>%
+  rename(`Sibling?` = Sib_YN)
+
+purp_summary %>%
+  kable(caption = "Reading Purpose Ratings by Sibling Presence") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE, position = "center")
+
+
+cat(paste0("\n**Educational Purpose**: W = ", round(edu_test$statistic, 1),
+           ", p = ", round(edu_test$p.value, 4)))
+
+cat(paste0("\n\n**Social Purpose**: W = ", round(soc_test$statistic, 1),
+           ", p = ", round(soc_test$p.value, 4)))
+```
+
+Parents in single-child households reported higher agreement with both educational and social purposes for shared reading compared to those in multi-child households. Specifically, parents without other children rated educational purpose significantly higher (M = 6.33, SD = 1.24) than parents with multiple children (M = 5.13, SD = 1.64). Although both groups rated reading as a social bonding activity highly, parents of only children again reported slightly higher agreement (M = 6.62, SD = 0.59) compared to those with siblings (M = 6.21, SD = 1.04). These findings suggest that while reading remains an important bonding experience across households, parents of only children may place greater emphasis on its educational value. This pattern aligns with the resource dilution model, which posits that the presence of siblings may reduce the time and cognitive resources available for each child, particularly for academically focused activities.
+
+```{r paired reading purp test, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+within_test <- wilcox.test(reading_df$Edu_purp, reading_df$Social_purp, paired = TRUE)
+
+test_summary <- tibble::tibble(
+  Test = c("Edu. Purpose by Sib Status",
+           "Social Purpose by Sib Status",
+           "Edu. vs Social Purpose (Paired)"),
+  W_or_V = c(edu_test$statistic,
+             soc_test$statistic,
+             within_test$statistic),
+  p_value = c(edu_test$p.value,
+              soc_test$p.value,
+              within_test$p.value)
+) %>%
+  mutate(
+    Test = factor(Test, levels = Test),  
+    `p-value` = format.pval(p_value, digits = 3, eps = .001)
+  ) %>%
+  select(Test, Statistic = W_or_V, `p-value`)
+
+knitr::kable(
+  test_summary,
+  caption = "Wilcoxon and Mann–Whitney Test Results",
+  align = "c",
+  digits = 3
+) %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::row_spec(0, bold = TRUE) %>%
+  kableExtra::column_spec(1:ncol(test_summary), extra_css = "font-family: 'Times New Roman';")
+```
+
+
+We used non-parametric tests to explore how parents' reading purpose ratings differed by sibling presence and purpose type. Parents of only children rated reading for educational purposes significantly higher than parents with multiple children (W = 814, p = .0014). In contrast, there was no significant difference between the two groups in how they rated reading for social bonding (W = 671, p = .1278), suggesting that the social purpose of reading is valued similarly regardless of family size.
+
+We also compared the two purposes within the same parents. A Wilcoxon signed-rank test showed that parents overall rated social bonding as a significantly stronger reason for reading than educational learning (V = 83.5, p < .001). Together, these results suggest that while parents see reading as both educational and social, those with only children may focus more on the learning aspect, possibly because they have more time or attention to give. This aligns with the Resource Dilution Model.
+
+## Stress Levels
+```{r stress levels df, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+stress_df <- combined %>%
+  select(subject_id, age, child_score, parent_score, `Words Understood`, `Words Produced`, `Total Produced`, `How stressed do you feel in the mornings? - low stress (1) to high stress (7)`, `How stressed do you feel in the evenings? - low stress (1) to high stress (7)`, `Are there any other children who live in your home?`)
+
+stress_df <- stress_df %>%
+  rename(Morning_Stress = `How stressed do you feel in the mornings? - low stress (1) to high stress (7)`)
+
+stress_df <- stress_df %>%
+  rename(Evening_Stress = `How stressed do you feel in the evenings? - low stress (1) to high stress (7)`)
+
+stress_df <- stress_df %>%
+  rename(Sib_YN = `Are there any other children who live in your home?`)
+
+
+stress_df <- stress_df %>%
+  filter(if_all(c(Morning_Stress, Evening_Stress), ~ !is.na(.)))
+```
+
+```{r stress levels paired test, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+stress_df$Morning_Stress <- as.numeric(stress_df$Morning_Stress)
+stress_df$Evening_Stress <- as.numeric(stress_df$Evening_Stress)
+
+stress_test <- wilcox.test(stress_df$Morning_Stress, stress_df$Evening_Stress, paired = TRUE)
+```
+The Wilcoxon signed-rank test showed a statistically significant difference between morning and evening stress levels (V = 201, p = .00028). This suggests that, on average, participants experience different stress levels in the morning compared to the evening.
+
+```{r stress test by sib, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+stress_df$Morning_Stress <- as.numeric(stress_df$Morning_Stress)
+stress_df$Evening_Stress <- as.numeric(stress_df$Evening_Stress)
+
+stress_sib <- stress_df %>% filter(Sib_YN == "Yes")
+stress_nosib <- stress_df %>% filter(Sib_YN == "No")
+
+stress_test_sib <- wilcox.test(stress_sib$Morning_Stress, stress_sib$Evening_Stress, paired = TRUE)
+stress_test_nosib <- wilcox.test(stress_nosib$Morning_Stress, stress_nosib$Evening_Stress, paired = TRUE)
+
+
+stress_by_group <- tibble(
+  Group = c("With Sibling(s)", "No Sibling"),
+  Statistic = c(stress_test_sib$statistic, stress_test_nosib$statistic),
+  `p-value` = c(
+    ifelse(stress_test_sib$p.value < 0.001, "< 0.001", round(stress_test_sib$p.value, 4)),
+    ifelse(stress_test_nosib$p.value < 0.001, "< 0.001", round(stress_test_nosib$p.value, 4))
+  )
+)
+
+
+stress_by_group %>%
+  kable("html", align = "c", caption = "Morning vs Evening Stress (Within Groups)") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed")) %>%
+  row_spec(0, bold = TRUE) %>%
+  column_spec(1:ncol(stress_by_group), extra_css = "font-family: 'Times New Roman';")
+
+
+```
+
+A paired Wilcoxon signed-rank test was used to compare morning and evening stress levels within households, separated by sibling presence.
+
+Among parents in multi-child households, stress levels were significantly higher in the morning than in the evening (W = 112.5, p = 0.0014).
+
+In contrast, for parents in single-child households, there was no significant difference between morning and evening stress (W = 14.0, p = 0.0933).
+
+These results suggest that morning stress is more pronounced in families with multiple children, possibly due to the increased coordination and responsibilities involved in managing more than one child. For single-child households, stress levels appear to remain more stable throughout the day.
+
+```{r stress by sib on lang, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+sib_stress_lm_model <- lm(child_score ~ Morning_Stress * Sib_YN + Evening_Stress * Sib_YN, data = stress_df)
+
+term_labels <- c(
+  "(Intercept)" = "Intercept",
+  "Morning_Stress" = "Morning Stress",
+  "Sib_YNYes" = "Sibling Present (Yes)",
+  "Evening_Stress" = "Evening Stress",
+  "Morning_Stress:Sib_YNYes" = "Interaction (Morning × Sibling)",
+  "Sib_YNYes:Evening_Stress" = "Interaction (Evening × Sibling)"
+)
+
+
+sib_stress_lm_table <- tidy(sib_stress_lm_model, conf.int = TRUE) %>%
+  filter(term %in% names(term_labels)) %>%
+  mutate(Term = term_labels[term]) %>%
+  select(Term, estimate, std.error, statistic, p.value) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>%
+  mutate(`Significance` = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    p.value < 0.1 ~ ".",
+    TRUE ~ ""
+  )) %>%
+  kable("html", caption = "Linear Model: Child Score Predicted by Morning and Evening Stress with Sibling Status",
+        col.names = c("Term", "Estimate (β)", "Std. Error", "t value", "p-value", " ")) %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1:6, extra_css = "font-family: 'Times New Roman', Times, serif;") %>%
+  row_spec(0, bold = TRUE)
+
+sib_stress_lm_table
+
+```
+
+We examined how morning and evening parental stress and sibling presence influence children's language and behavioral outcomes, as measured by child score.
+
+Sibling presence was a significant negative predictor (β = -13.82, p = .002), indicating that children with siblings tended to have lower scores than only children.
+
+Evening stress was also negatively associated with child scores (β = -2.79, p = .022), suggesting that higher evening stress levels correspond to lower scores.
+
+The interaction between evening stress and sibling presence was significant (β = 2.76, p = .037), indicating that the negative impact of evening stress on language outcomes is less pronounced when siblings are present. In other words, siblings may buffer the effect of evening stress.
+
+Morning stress alone and its interaction with sibling presence were not statistically significant, suggesting that morning stress does not independently or interactively predict language outcomes in this model.
+
+```{r anova for child lang outcome by stress grouped by sib, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+
+stress_df <- stress_df %>%
+  mutate(
+    Morning_Stress = as.numeric(Morning_Stress),
+    Evening_Stress = as.numeric(Evening_Stress),
+    Words_Understood = as.numeric(`Words Understood`),
+    Words_Produced = as.numeric(`Words Produced`),
+    Total_Produced = as.numeric(`Total Produced`)
+  )
+
+anova_words_understood <- aov(Words_Understood ~ Morning_Stress + Evening_Stress + Sib_YN, data = stress_df)
+anova_words_produced   <- aov(Words_Produced ~ Morning_Stress + Evening_Stress + Sib_YN, data = stress_df)
+anova_total_produced   <- aov(Total_Produced ~ Morning_Stress + Evening_Stress + Sib_YN, data = stress_df)
+
+tidy_understood <- tidy(anova_words_understood) %>% mutate(Outcome = "Words Understood")
+tidy_produced   <- tidy(anova_words_produced) %>% mutate(Outcome = "Words Produced")
+tidy_total      <- tidy(anova_total_produced) %>% mutate(Outcome = "Total Produced")
+
+anova_table <- bind_rows(tidy_understood, tidy_produced, tidy_total) %>%
+  filter(term != "Residuals") %>%
+  mutate(across(c(statistic, p.value), ~ round(.x, 3))) %>%
+  rename(
+    Outcome = Outcome,
+    Term = term,
+    `F value` = statistic,
+    `p-value` = p.value
+  ) %>%
+  select(Outcome, Term, `F value`, `p-value`) %>%
+  arrange(Outcome, desc(`F value`))
+
+anova_table %>%
+  kable("html", caption = "ANOVA Results: Predicting Language Outcomes from Stress and Sibling Status",
+        col.names = c("Outcome", "Predictor", "F value", "p-value")) %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1:4, extra_css = "font-family: 'Times New Roman';") %>%
+  row_spec(0, bold = TRUE)
+
+```
+
+We conducted ANOVAs to assess whether Morning Stress, Evening Stress, and Sibling Presence predicted three language outcomes: Words Understood, Words Produced, and Total Words Produced.
+
+Evening Stress emerged as a significant predictor for both Words Understood and Words Produced (F = 7.576, p = .010 for both). This suggests that higher evening stress levels may be associated with lower child language production and comprehension.
+
+However, neither Morning Stress nor Sibling Presence significantly predicted any of the three outcomes (p > .10 in all cases). Similarly, no significant effects were observed for Total Words Produced, indicating that this broader measure of language output may be less sensitive to the household or emotional context.
+
+These findings highlight Evening Stress as a potentially important factor in shaping early language development, particularly in terms of both understanding and producing words.
