@@ -1,11 +1,11 @@
 ---
-title: "Beyond the Bookshelf: Family Influences on Early Language Production"
+title: 'Beyond the Bookshelf: Family Influences on Early Language Production'
 author: "Cecilia Nguyen, Kristen Gilyard, Elika Bergelson"
 output: 
   html_document:
     toc_depth: 2
     number_sections: true
-    theme: journal  
+    theme: journal
     highlight: tango
 csl: apa.csl
 ---
@@ -42,8 +42,11 @@ download.file("https://www.zotero.org/styles/apa", destfile = "apa.csl")
 #install.packages("gt")
 #install.packages("MASS")
 #install.packages("broom")
+#install.packages("sjPlot")
+#install.packages("lme4")
 
-
+library(lme4)
+library(sjPlot)
 library(MASS)
 library(dplyr)
 library(broom)
@@ -139,20 +142,20 @@ sibship_factors <- sibship_factors %>%
 
 sib_scores <- combined %>%
   filter(combined[[ which(grepl("Are there any other children", colnames(combined))) ]] == "Yes") %>%
-  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`)
+  select(subject_id, age, child_score, parent_score, `Words Understood`, `Words Produced`, `Total Produced`)
 ```
 
 ```{r table of descriptive stats, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 
 id_scores <- id_scores %>%
   rename_with(~ gsub(" ", "_", .x)) %>%
-  mutate(across(c(age, child_score, parent_score, Words_Produced, Total_Produced), as.numeric))
+  mutate(across(c(age, child_score, parent_score, Words_Understood, Words_Produced, Total_Produced), as.numeric))
 
 
 id_scores %>%
   summarise(
     across(
-      c(age, child_score, parent_score, Words_Produced, Total_Produced),
+      c(age, child_score, parent_score, Words_Understood, Words_Produced, Total_Produced),
            list(
              Mean = ~ mean(.x, na.rm = TRUE),
              SD = ~ sd(.x, na.rm = TRUE),
@@ -173,6 +176,7 @@ id_scores %>%
                            age = "Child Age (m)",
                            child_score = "Child Score",
                            parent_score = "Parent Score",
+                           Words_Understood = "Words Understood",
                            Words_Produced = "Words Produced",
                            Total_Produced = "Total Produced")) %>%
   select(Variable, Mean, SD, N) %>%
@@ -197,13 +201,13 @@ While most variables have around 70 participants, `Words Produced` and `Total Pr
 ```{r descriptive stats of children with siblings, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 sib_scores <- sib_scores %>%
   rename_with(~ gsub(" ", "_", .x)) %>%
-  mutate(across(c(age, child_score, parent_score, Words_Produced, Total_Produced), as.numeric))
+  mutate(across(c(age, child_score, parent_score, Words_Understood, Words_Produced, Total_Produced), as.numeric))
 
 
 sib_scores %>%
   summarise(
     across(
-      c(age, child_score, parent_score, Words_Produced, Total_Produced),
+      c(age, child_score, parent_score, Words_Understood, Words_Produced, Total_Produced),
            list(
              Mean = ~ mean(.x, na.rm = TRUE),
              SD = ~ sd(.x, na.rm = TRUE),
@@ -224,6 +228,7 @@ sib_scores %>%
                            age = "Child Age (m)",
                            child_score = "Child Score",
                            parent_score = "Parent Score",
+                           Words_Understood = "Words Understood",
                            Words_Produced = "Words Produced",
                            Total_Produced = "Total Produced")) %>%
   select(Variable, Mean, SD, N) %>%
@@ -481,6 +486,85 @@ ggplot(sibship_factors, aes(x = Sib_Identity))+
   theme_minimal(base_size = 10, base_family = "Times") + 
       theme(plot.title = element_text(hjust = 0.5, size = 12) ) + custom_theme
 
+```
+
+```{r lang df with scores, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
+lang_df <- combined %>%
+  select(subject_id, age, child_score, parent_score, `Words Understood`, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`, `Are there any other children who live in your home?`) %>%
+  distinct(subject_id, .keep_all = TRUE) %>%
+  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
+    mutate(
+    lang_binary = case_when(
+      tolower(`Other Language?`) %in% c("no", "none", "english") ~ "No",
+      TRUE ~ "Yes")) %>%
+  rename(`Have Sibs?` = `Are there any other children who live in your home?`) %>%
+    mutate(
+    sib_binary = case_when(
+      tolower(`Have Sibs?`) %in% c("no", "none", "english") ~ "No",
+      TRUE ~ "Yes"))
+
+  lang_df <- lang_df %>%
+  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+```
+
+```{r box-plot of sib CS, echo=FALSE, fig.align='center', fig.height=3, fig.width=5, message=FALSE, warning=FALSE}
+sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
+combined$subject_id <- as.character(combined$subject_id)
+combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
+
+
+ggplot(lang_df, aes(x = sib_binary, y = child_score)) +
+  geom_boxplot(outlier.shape = NA, fill = "plum3", alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+    scale_y_continuous(limits = c(0,40)) +
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+    ) +
+  labs(
+    x = "Have Sib?",
+    y = "Child Score"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") + custom_theme
+
+```
+
+
+```{r box-plot of words produced by household size, echo=FALSE, fig.align='center', fig.height=3, fig.width=5, message=FALSE, warning=FALSE}
+sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
+combined$subject_id <- as.character(combined$subject_id)
+combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
+
+ggplot(lang_df %>% filter(!subject_id %in% c(35, 25, 14)),
+       aes(x = `Have Sibs?`, y = `Words Produced`,colour =`Have Sibs?`, fill=`Have Sibs?`)) + scale_colour_manual(values = c(Yes = "darkolivegreen3", No = "tan3")) +  scale_fill_manual(values = c(Yes = "darkolivegreen3", No = "tan3")) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+    scale_y_continuous(limits = c(0,450)) +
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+    ) +
+  labs(
+    x = "Have Sibs?",
+    y = "Words Produced (WG)"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 ```
 
 ### Multilingual Household
@@ -773,6 +857,7 @@ summary_table %>%
   )
 
 ```
+Spearman correlation analyses revealed significant positive relationships between children’s language production and comprehension and their overall scores. Specifically, both the number of words produced and understood by children were strongly correlated with their Child Score (ρ = 0.654, p < .001), suggesting that children who produced or understood more words tended to score higher. A moderate positive correlation was also found between Total Produced and Child Score (ρ = 0.517, p = .003). Parent Scores showed moderate, significant correlations with children’s Words Produced and Words Understood (ρ = 0.504, p = .001 for both), indicating some alignment between children's language abilities and parent-reported scores. However, the correlation between Total Produced and Parent Score was weaker and not statistically significant (ρ = 0.265, p = .150), suggesting limited predictive value of this measure for parent outcomes.
 
 # Comparing Sibling Identities
 ```{r wilcox WU and sib yes no, echo=FALSE, message=FALSE, warning=FALSE}
@@ -879,26 +964,6 @@ sib_df <- combined %>%
   rename(`Have Sib?` = `Are there any other children who live in your home?`) 
 
   sib_df <- sib_df %>%
-  mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
-```
-
-
-```{r lang df with scores, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
-lang_df <- combined %>%
-  select(subject_id, age, child_score, parent_score, `Words Understood`, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`, `Are there any other children who live in your home?`) %>%
-  distinct(subject_id, .keep_all = TRUE) %>%
-  rename(`Other Language?` = `Are there any other languages spoken in your home?`) %>%
-    mutate(
-    lang_binary = case_when(
-      tolower(`Other Language?`) %in% c("no", "none", "english") ~ "No",
-      TRUE ~ "Yes")) %>%
-  rename(`Have Sibs?` = `Are there any other children who live in your home?`) %>%
-    mutate(
-    sib_binary = case_when(
-      tolower(`Have Sibs?`) %in% c("no", "none", "english") ~ "No",
-      TRUE ~ "Yes"))
-
-  lang_df <- lang_df %>%
   mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
 ```
 
@@ -1047,7 +1112,7 @@ In addition to the primary parent and child reading measures, we collected explo
 ```{r df with reading, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 
 reading_df <- combined %>%
-  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `How much time  (in minutes) on average do you spend reading with your child in one session?`, `Please rate each statement about reading from 1 (don't agree) to 7 (fully agree) - Reading time is for educational purposes so that my child can learn new words`, `Please rate each statement about reading from 1 (don't agree) to 7 (fully agree) - Reading time is for social purposes to bond with my child`, `Are there any other children who live in your home?`)
+  select(subject_id, age, child_score, parent_score, `Words Produced`, `Total Produced`, `How much time  (in minutes) on average do you spend reading with your child in one session?`, `Please rate each statement about reading from 1 (don't agree) to 7 (fully agree) - Reading time is for educational purposes so that my child can learn new words`, `Please rate each statement about reading from 1 (don't agree) to 7 (fully agree) - Reading time is for social purposes to bond with my child`, `Are there any other children who live in your home?`, `How stressed do you feel in the mornings? - low stress (1) to high stress (7)`, `How stressed do you feel in the evenings? - low stress (1) to high stress (7)`)
 
 reading_df <- reading_df %>%
   rename(reading_time = `How much time  (in minutes) on average do you spend reading with your child in one session?`)
@@ -1060,6 +1125,12 @@ reading_df <- reading_df %>%
 
 reading_df <- reading_df %>%
   rename(Sib_YN = `Are there any other children who live in your home?`)
+
+reading_df <- reading_df %>%
+  rename(Evening_Stress = `How stressed do you feel in the evenings? - low stress (1) to high stress (7)`)
+
+reading_df <- reading_df %>%
+  rename(Morning_Stress = `How stressed do you feel in the mornings? - low stress (1) to high stress (7)`)
 
 ```
 
@@ -1326,7 +1397,7 @@ These results suggest that morning stress is more pronounced in families with mu
 
 ```{r stress by sib on lang, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
 
-sib_stress_lm_model <- lm(child_score ~ Morning_Stress * Sib_YN + Evening_Stress * Sib_YN, data = stress_df)
+sib_stress_lm_model <- lm(child_score ~ Morning_Stress * Sib_YN + Evening_Stress * Sib_YN , data = stress_df)
 
 term_labels <- c(
   "(Intercept)" = "Intercept",
@@ -1358,6 +1429,10 @@ sib_stress_lm_table <- tidy(sib_stress_lm_model, conf.int = TRUE) %>%
 
 sib_stress_lm_table
 
+```
+
+```{r}
+plot_model(sib_stress_lm_model)
 ```
 
 We examined how morning and evening parental stress and sibling presence influence children's language and behavioral outcomes, as measured by child score.
@@ -1417,3 +1492,86 @@ Evening Stress emerged as a significant predictor for both Words Understood and 
 However, neither Morning Stress nor Sibling Presence significantly predicted any of the three outcomes (p > .10 in all cases). Similarly, no significant effects were observed for Total Words Produced, indicating that this broader measure of language output may be less sensitive to the household or emotional context.
 
 These findings highlight Evening Stress as a potentially important factor in shaping early language development, particularly in terms of both understanding and producing words.
+
+```{r box-plot of morning stress by household size, echo=FALSE, fig.align='center', fig.height=3, fig.width=5, message=FALSE, warning=FALSE}
+sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
+combined$subject_id <- as.character(combined$subject_id)
+combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
+
+ggplot(stress_df %>% filter(!subject_id %in% c(35, 25, 14)),
+       aes(x = Sib_YN, y = Morning_Stress,colour = Sib_YN, fill=Sib_YN)) + scale_colour_manual(values = c(Yes = "darkolivegreen3", No = "tan3")) +  scale_fill_manual(values = c(Yes = "darkolivegreen3", No = "tan3")) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+    scale_y_continuous(limits = c(0,7)) +
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+    ) +
+  labs(
+    x = "Have Sibs?",
+    y = "Morning Stress"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") + custom_theme + stat_summary(fun.y=mean,shape=1,col='black',geom='point', fill = "black")
+```
+
+```{r box-plot of evening stress by household size, echo=FALSE, fig.align='center', fig.height=3, fig.width=5, message=FALSE, warning=FALSE}
+sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
+combined$subject_id <- as.character(combined$subject_id)
+combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
+
+ggplot(stress_df %>% filter(!subject_id %in% c(35, 25, 14)),
+       aes(x = Sib_YN, y = Evening_Stress,colour = Sib_YN, fill=Sib_YN)) + scale_colour_manual(values = c(Yes = "darkolivegreen3", No = "tan3")) +  scale_fill_manual(values = c(Yes = "darkolivegreen3", No = "tan3")) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+    scale_y_continuous(limits = c(0,7)) +
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+    ) +
+  labs(
+    x = "Have Sibs?",
+    y = "Evening Stress"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") + custom_theme + stat_summary(fun.y=mean,shape=1,col='black',geom='point', fill = "black")
+```
+
+```{r box-plot of parent score by morning stress, echo=FALSE, fig.align='center', fig.height=3, fig.width=5, message=FALSE, warning=FALSE}
+sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
+combined$subject_id <- as.character(combined$subject_id)
+combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
+combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
+
+ggplot(stress_df %>% filter(!subject_id %in% c(35, 25, 14)),
+       aes(x = parent_score, y = Evening_Stress ))  +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") + 
+    scale_y_continuous(limits = c(0,7)) +
+  labs(
+    x = "Parent Score",
+    y = "Evening Stress"
+  ) +
+  theme_minimal(base_size = 10, base_family = "Times") + custom_theme 
+```
+```{r evening stress time boxplot, echo=FALSE, message=FALSE,warning=FALSE, fig.align='center', fig.width=5, fig.height=3}
+reading_df$Evening_Stress <- as.numeric(reading_df$Evening_Stress)
+
+ggplot(reading_df, aes(x = reading_time, y = Evening_Stress)) +
+  geom_boxplot(fill = "plum3", alpha = 0.7) +
+  labs(x = "Time Reading per Session", y = " Evening Stress") +
+  theme_minimal(base_family = "Times") + custom_theme
+```
