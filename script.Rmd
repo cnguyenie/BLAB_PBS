@@ -199,3 +199,47 @@ combined <- combined %>% select(where(~!all(is.na(.x))))
 saveRDS(combined, "combined.rds")
 ``` 
 
+```{r biWFR additions jul 30}
+
+setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey")
+
+CDI_biWFR_7.29 <- read_excel("biWFR - CDI.xlsx")
+Qual_biWFR_7.29 <- read_excel("Home Reading Environment Survey - biWFR.xlsx")
+
+colnames(Qual_biWFR_7.29) <- as.character(Qual_biWFR_7.29[1, ])
+Qual_biWFR_7.29 <- Qual_biWFR_7.29[-1, ]
+
+CDI_biWFR_7.29 <- CDI_biWFR_7.29[, -c(1,4,7, 9:14)]
+Qual_biWFR_7.29 <- Qual_biWFR_7.29[, -c(1:16)]
+
+CDI_biWFR_7.29 <- CDI_biWFR_7.29 %>% select(where(~!all(is.na(.x))))
+Qual_biWFR_7.29 <- Qual_biWFR_7.29 %>% select(where(~!all(is.na(.x))))
+
+Qual_biWFR_7.29[] <- lapply(Qual_biWFR_7.29, as.character)
+
+```
+
+```{r combining biwfr to existing}
+
+new_row_1 <- bind_cols(CDI_biWFR_7.29[1, , drop = FALSE], Qual_biWFR_7.29[3, , drop = FALSE])
+new_row_2 <- bind_cols(CDI_biWFR_7.29[2, , drop = FALSE], Qual_biWFR_7.29[2, , drop = FALSE])
+
+new_rows_raw <- bind_rows(new_row_1, new_row_2)
+
+template_rows <- as.data.frame(matrix(NA, nrow = 2, ncol = ncol(combined)))
+colnames(template_rows) <- colnames(combined)
+
+matching_cols <- intersect(colnames(combined), colnames(new_rows_raw))
+template_rows[, matching_cols] <- new_rows_raw[, matching_cols]
+
+for (col in colnames(combined)) {
+  if (col %in% colnames(template_rows)) {
+    class_target <- class(combined[[col]])[1]
+    template_rows[[col]] <- as(template_rows[[col]], class_target)
+  }
+}
+
+combined <- bind_rows(combined, template_rows)
+
+```
+
