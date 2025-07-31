@@ -44,7 +44,13 @@ download.file("https://www.zotero.org/styles/apa", destfile = "apa.csl")
 #install.packages("broom")
 #install.packages("sjPlot")
 #install.packages("lme4")
+#install.packages("plotly)
+#install.packages("patchwork")
+#install.packages("ggpubr")
 
+library(ggpubr)
+library(patchwork)  
+library(plotly)
 library(lme4)
 library(sjPlot)
 library(MASS)
@@ -69,6 +75,7 @@ library(gt)
 
 
 combined <- readRDS("combined.rds")
+
 setwd("/Volumes/Fas-Phyc-PEB-Lab/experimental_projects/PBS/PBS_Full_Study/CN_Working_Folder/R/Survey")
 
 sibship_factors <- readxl::read_xlsx("Sibship_Factors.xlsx")
@@ -79,9 +86,9 @@ sibship_factors <- sibship_factors %>%
 #Set Theme with same sizes for all plots
 custom_theme <- theme_minimal(base_size = 10, base_family = "Times") +
   theme(
-    axis.text = element_text(size = 10),
-    axis.title = element_text(size = 10),
-    plot.title = element_text(size = 11, face = "bold", hjust = 0.5)
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
   )
 ```
 
@@ -137,7 +144,8 @@ id_scores <- combined %>%
  
 sibship_factors <- sibship_factors %>%
   left_join(
-    id_scores,
+    combined %>%
+      select(subject_id, parent_score, child_score, `Words Produced`, `Words Understood`, `Total Produced`),
     by = c("Subject_ID" = "subject_id"))
 
 sib_scores <- combined %>%
@@ -379,6 +387,28 @@ ggplot(
   annotate("text", x = Inf, y = Inf, label = paste0("N = ", n_tp),
            hjust = 1.1, vjust = 1.5, size = 3.5, family = "Times") +
   theme_minimal(base_size = 10, base_family = "Times") + custom_theme
+
+```
+
+```{r model-prod-child-age, message=FALSE, warning=FALSE}
+
+
+model_prod_child_age <- lm(`Words Produced` ~ child_score + age, data = combined)
+
+combined$predicted_wp <- predict(model_prod_child_age, newdata = combined)
+
+
+ggplot(combined[!is.na(combined$predicted_wp), ], aes(x = predicted_wp, y = `Words Produced`)) +
+  geom_point(color = "steelblue", size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "darkred") +
+  labs(
+    title = "Predicted vs. Actual Word Production",
+    x = "Predicted Words Produced",
+    y = "Actual Words Produced"
+  ) +
+  theme_minimal(base_family = "Times") +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
 ```
 
 ## Children and Parent Scores
@@ -439,6 +469,93 @@ ggplot(combined, aes(x = child_score)) +
   theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 ```
 
+```{r score-wu-densityplots, message=FALSE, warning=FALSE, fig.width=10, fig.height=4}
+
+
+combined_long <- combined %>%
+  select(parent_score, child_score, `Words Understood`) %>%
+  rename(
+    Parent = parent_score,
+    Child = child_score,
+    WordProd = `Words Understood`
+  ) %>%
+  pivot_longer(cols = c(Parent, Child), names_to = "Score_Type", values_to = "Score")
+
+ggplot(combined_long, aes(x = Score, y = WordProd, color = Score_Type, fill = Score_Type)) +
+  geom_point(alpha = 0.6, size = 2) +  # ⬅️ Adds the dots
+  geom_smooth(method = "loess", se = FALSE, size = 1.2) +
+  scale_fill_manual(values = c("skyblue", "orange")) +
+  scale_color_manual(values = c("#6e772d", "#dd702d")) +
+  labs(
+    x = "Score Value",
+    y = "Words Understood (WG)",
+    fill = "Score Type",
+    color = "Type of Score"
+  ) +
+  theme_minimal(base_family = "Times") +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  ) +
+  guides(fill = "none") +
+  custom_theme
+
+
+```
+
+```{r score-wp-densityplots, message=FALSE, warning=FALSE, fig.width=10, fig.height=4}
+
+
+combined_long <- combined %>%
+  select(parent_score, child_score, `Words Produced`) %>%
+  rename(
+    Parent = parent_score,
+    Child = child_score,
+    WordProd = `Words Produced`
+  ) %>%
+  pivot_longer(cols = c(Parent, Child), names_to = "Score_Type", values_to = "Score")
+
+ggplot(combined_long, aes(x = Score, fill = Score_Type)) +
+  geom_density(alpha = 0.4) +
+  geom_smooth(aes(y = WordProd, color = Score_Type), method = "loess", se = FALSE, size = 1.2) +
+  scale_fill_manual(values = c("skyblue", "orange")) +
+  scale_color_manual(values = c("#6e772d", "#dd702d")) +
+  labs(
+    x = "Score Value",
+    y = "Words Produced (WG)",
+    fill = "Score Type",
+    color = "Type of Score"
+  ) +
+  theme_minimal(base_family = "Times") +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5)) + guides(fill = "none") + custom_theme
+
+```
+
+```{r score-tp-densityplots, message=FALSE, warning=FALSE, fig.width=10, fig.height=4}
+
+combined_long <- combined %>%
+  select(parent_score, child_score, `Total Produced`) %>%
+  rename(
+    Parent = parent_score,
+    Child = child_score,
+    WordProd = `Total Produced`
+  ) %>%
+  pivot_longer(cols = c(Parent, Child), names_to = "Score_Type", values_to = "Score")
+
+ggplot(combined_long, aes(x = Score, fill = Score_Type)) +
+  geom_density(alpha = 0.4) +
+  geom_smooth(aes(y = WordProd, color = Score_Type), method = "loess", se = FALSE, size = 1.2) +
+  scale_fill_manual(values = c("skyblue", "orange")) +
+  scale_color_manual(values = c("#6e772d", "#dd702d")) +
+  labs(
+    x = "Score Value",
+    y = "Total Produced (WS)",
+    fill = "Score Type",
+    color = "Type of Score"
+  ) +
+  theme_minimal(base_family = "Times") +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5)) + guides(fill = "none") + custom_theme
+
+```
 ## Household Details
 
 ### Sibling Count and Identity
@@ -457,13 +574,17 @@ sib_yesno <- table(
 sib_yesno <- as.data.frame(sib_yesno)
 colnames(sib_yesno) <- c("Answer", "Count")
 
-householdplot <- ggplot(sib_yesno, aes(x = Answer, y = Count)) + 
-  geom_bar(stat = "identity", fill = "lightblue2", width = 0.6) +
+householdplot <- ggplot(sib_yesno, aes(x = Answer, y = Count, fill = Answer)) + 
+  geom_bar(stat = "identity", width = 0.6) +
   geom_text(aes(label = Count), hjust = -0.3, family = "Times", size = 4) +
   coord_flip() +
   expand_limits(y = max(sib_yesno$Count) * 1.1) +
+  scale_fill_manual(values = c("Yes" = "#f2af36", "No" = "#6e772d")) + 
   theme_minimal(base_size = 8, base_family = "Times") +
-    theme(plot.title = element_text(hjust = 0.5, size = 10)) + custom_theme
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14)
+  ) +
+  custom_theme
 
 householdplot
 ```
@@ -488,7 +609,10 @@ ggplot(sibship_factors, aes(x = Sib_Identity))+
 
 ```
 
+
+
 ```{r lang df with scores, fig.width = 6, fig.height = 8, echo=FALSE, message=FALSE,warning=FALSE}
+
 lang_df <- combined %>%
   select(subject_id, age, child_score, parent_score, `Words Understood`, `Words Produced`, `Total Produced`, `Are there any other languages spoken in your home?`, `Are there any other children who live in your home?`) %>%
   distinct(subject_id, .keep_all = TRUE) %>%
@@ -505,6 +629,36 @@ lang_df <- combined %>%
 
   lang_df <- lang_df %>%
   mutate(Produced = coalesce(`Words Produced`, `Total Produced`))
+```
+
+```{r sibling-identity-child-score, message=FALSE, warning=FALSE, fig.width=6, fig.height=4}
+
+sibship_factors <- sibship_factors %>% mutate(Subject_ID = as.character(Subject_ID))
+combined <- combined %>% mutate(subject_id = as.character(subject_id))
+
+
+sibship_factors <- sibship_factors %>%
+  left_join(
+    combined %>%
+      select(subject_id, parent_score, child_score, `Words Produced`, `Words Understood`, `Total Produced`),
+    by = c("Subject_ID" = "subject_id"))
+
+sibship_factors$Sib_Identity <- factor(sibship_factors$Sib_Identity, levels = c("Older Sister", "Older Brother"))
+
+ggplot(sibship_factors %>% filter(!is.na(Sib_Identity)),
+       aes(x = Sib_Identity, y = child_score, fill = Sib_Identity)) +
+  geom_violin(trim = FALSE, alpha = 0.7) +
+  scale_fill_manual(name = "Sibling?", values = c("turquoise", "orchid")) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") +
+  scale_y_continuous(limits = c(0, 40)) +
+  stat_summary(fun.data = "mean_cl_boot", geom = "pointrange", colour = "black") +
+  labs(
+    x = "Have Sib?",
+    y = "Child Score"
+  ) +
+  theme_minimal(base_size = 15, base_family = "Times")
+
+
 ```
 
 ```{r box-plot of sib CS, echo=FALSE, fig.align='center', fig.height=3, fig.width=5, message=FALSE, warning=FALSE}
@@ -567,6 +721,73 @@ ggplot(lang_df %>% filter(!subject_id %in% c(35, 25, 14)),
   theme_minimal(base_size = 10, base_family = "Times") + custom_theme
 ```
 
+```{r child-score-by-sibling, message=FALSE, warning=FALSE, fig.width=5, fig.height=4}
+
+combined$Sibling <- factor(combined$`Are there any other children who live in your home?`, levels = c("No", "Yes"))
+
+child_sib_test <- wilcox.test(child_score ~ Sibling, data = combined)
+
+ggplot(lang_df, aes(x = sib_binary, y = child_score, fill = sib_binary)) +
+  geom_violin(trim = FALSE, alpha = 0.7) +
+  scale_fill_manual(  name = "Sibling?", values = c("#b2bf6d", "#dd702d")) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") +
+  scale_y_continuous(limits = c(0, 40)) +
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+  ) +
+  labs(
+    x = "Have Sib?",
+    y = "Child Score"
+  ) +
+  theme_minimal(base_size = 15, base_family = "Times") + 
+  stat_summary(fun.data = "mean_cl_boot", geom = "pointrange",
+               colour = "black")
+```
+
+
+```{r child-production-by-sibling, message=FALSE, warning=FALSE, fig.width=5, fig.height=4}
+
+combined$Sibling <- factor(combined$`Are there any other children who live in your home?`, levels = c("No", "Yes"))
+combined$Sibling <- factor(combined$Sibling)
+combined <- droplevels(combined)
+
+child_sib_test <- wilcox.test(`Words Produced` ~ Sibling, data = combined)
+
+ggplot(lang_df, aes(x = sib_binary, y = `Produced`, fill = sib_binary)) +
+  geom_violin(trim = FALSE, alpha = 0.7) +
+  scale_fill_manual(  name = "Sibling?", values = c("#b2bf6d", "#dd702d")) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") +
+  scale_y_continuous(limits = c(0, 500)) +
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x))) * 1.25
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+  ) +
+  labs(
+    x = "Have Sib?",
+    y = "Words Produced (WG)"
+  ) +
+  theme_minimal(base_size = 15, base_family = "Times") + 
+  stat_summary(fun.data = "mean_cl_boot", geom = "pointrange",
+               colour = "black")
+
+
+```
+
 ### Multilingual Household
 
 Multilingual households were also looked at. Out of 65 families, only 18 have another language, that is not English, spoken at home. The responses were also categorized by language group. `Multilingual` refers to households that speak more than one language as to not double count subjects.
@@ -591,12 +812,69 @@ ggplot(lang_yesno, aes(x = lang_binary, y = Count, fill = lang_binary)) +
    geom_bar(stat = "identity", width = 0.6) +
   geom_text(aes(label = Count), vjust = -0.3) +
   labs(
-    x = "Response",
+    x = "Multilingual?",
     y = "Count"
   ) +
-  scale_fill_manual(values = c("Yes" = "pink2", "No" = "lightblue2")) +
+  scale_fill_manual(values = c("Yes" = "lightcoral", "No" = "royalblue1")) +
   scale_y_continuous(limits = c(0, 55)) +
-  theme_minimal(base_size = 8, base_family = "Times") + custom_theme +   theme(legend.position = "none")
+  theme_minimal(base_size = 14, base_family = "Times") + custom_theme +   theme(legend.position = "none")
+```
+
+```{r child-score-by-lang, message=FALSE, warning=FALSE, fig.width=6, fig.height=4}
+
+combined$Sibling <- factor(combined$`Are there any other children who live in your home?`, levels = c("No", "Yes"))
+
+
+ggplot(lang_df, aes(x = lang_binary, y = child_score, fill = lang_binary)) +
+  geom_violin(trim = FALSE, alpha = 0.7) +
+  scale_fill_manual(  name = "Multilingual?", values = c("royalblue1", "lightcoral")) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") +
+  scale_y_continuous(limits = c(0, 40)) +
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+  ) +
+  labs(
+    x = "Multilingual?",
+    y = "Child Score"
+  ) +
+  theme_minimal(base_size = 15, base_family = "Times") + 
+  stat_summary(fun.data = "mean_cl_boot", geom = "pointrange",
+               colour = "black")
+```
+
+```{r child-prod-by-lang, message=FALSE, warning=FALSE, fig.width=6, fig.height=4}
+
+ggplot(lang_df, aes(x = lang_binary, y = `Produced`, fill = lang_binary)) +
+  geom_violin(trim = FALSE, alpha = 0.7) +
+  scale_fill_manual(  name = "Multilingual?", values = c("royalblue1", "lightcoral")) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "grey40") +
+  scale_y_continuous(limits = c(0, 400)) +
+  stat_summary(
+    fun.data = function(x) {
+      data.frame(
+        y = max(x, na.rm = TRUE) * 1.25,
+        label = paste0("N = ", sum(!is.na(x)))
+      )
+    },
+    geom = "text",
+    size = 3.5,
+    family = "Times"
+  ) +
+  labs(
+    x = "Multilingual?",
+    y = "Word Production"
+  ) +
+  theme_minimal(base_size = 15, base_family = "Times") + 
+  stat_summary(fun.data = "mean_cl_boot", geom = "pointrange",
+               colour = "black")
 ```
 
 ```{r graph of other lang spoken, fig.width = 5, fig.height = 5, echo=FALSE, message=FALSE,warning=FALSE}
@@ -659,13 +937,6 @@ sibship_factors$Subject_ID <- as.character(sibship_factors$Subject_ID)
 combined$subject_id <- as.character(combined$subject_id)
 combined$`Words Produced` <- as.numeric(combined$`Words Produced`)
 combined$`Words Understood` <- as.numeric(combined$`Words Understood`)
-
-sibship_factors <- sibship_factors %>%
-  left_join(
-    combined %>%
-      select(subject_id, `Words Produced`, `Words Understood`, `Total Produced`),
-    by = c("Subject_ID" = "subject_id")
-  )
 
 ggplot(sibship_factors %>%
          filter(!Sib_Identity %in% c("Twin", "Younger Brother", "Younger Sister")),
@@ -1575,3 +1846,5 @@ ggplot(reading_df, aes(x = reading_time, y = Evening_Stress)) +
   labs(x = "Time Reading per Session", y = " Evening Stress") +
   theme_minimal(base_family = "Times") + custom_theme
 ```
+
+
